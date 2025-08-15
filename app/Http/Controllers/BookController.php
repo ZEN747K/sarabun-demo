@@ -1387,39 +1387,37 @@ class BookController extends Controller
         $data['message'] = '';
         $id = $request->input('id');
         $note = $request->input('note');
-        $log = Log_status_book::where('position_id', $this->position_id)
+        $current = Log_status_book::where('position_id', $this->position_id)
             ->where('book_id', $id)
             ->first();
-        if ($log) {
-            $log->status = 16;
-            $log->updated_at = date('Y-m-d H:i:s');
-            if ($log->save()) {
-                $book = Book::find($id);
-                $firstUser = User::find($book->created_by);
-                $firstPosition = optional($firstUser)->position_id ?: auth()->user()->position_id;
-                $oldPath = $log->file;
-                $file = str_replace($log->position_id . '/uploads/', '', $log->file);
-                $newPath = 'directory/' . $firstPosition . '/' . $file;
-                if (Storage::exists($oldPath)) {
-                    Storage::copy($oldPath, $newPath);
+        if ($current) {
+            $previous = Log_status_book::where('book_id', $id)
+                ->where('id', '<', $current->id)
+                ->orderBy('id', 'desc')
+                ->first();
+            if ($previous) {
+                if (Storage::exists($current->file)) {
+                    Storage::copy($current->file, $previous->file);
                 }
+                $file = str_replace($previous->position_id . '/uploads/', '', $previous->file);
                 $directorylogs = new Directory_log();
                 $directorylogs->book_id = $id;
-                $directorylogs->position_id = $firstPosition;
-                $directorylogs->logs_id = $log->id;
+                $directorylogs->position_id = $previous->position_id;
+                $directorylogs->logs_id = $previous->id;
                 $directorylogs->file = $file;
                 $directorylogs->created_at = date('Y-m-d H:i:s');
                 $directorylogs->created_by = auth()->user()->id;
                 $directorylogs->updated_at = date('Y-m-d H:i:s');
                 $directorylogs->updated_by = auth()->user()->id;
                 $directorylogs->save();
+                $current->delete();
                 log_active([
                     'users_id' => auth()->user()->id,
-                    'status' => 16,
+                    'status' => $previous->status,
                     'datetime' => date('Y-m-d H:i:s'),
                     'detail' => 'ปฏิเสธหนังสือ' . ($note ? ' <span style="color:red; font-weight:bold;"> หมายเหตุ :</span> ' . $note : ''),
                     'book_id' => $id,
-                    'position_id' => $log->position_id
+                    'position_id' => $this->position_id
                 ]);
                 $data['status'] = true;
                 $data['message'] = 'ปฏิเสธหนังสือเรียบร้อย';

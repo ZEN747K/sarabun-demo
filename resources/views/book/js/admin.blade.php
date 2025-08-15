@@ -1335,7 +1335,7 @@
                 document.getElementById('directory-save').disabled = false;
                 $('#directory-save').show();
             }
-            if (status >= 3 && status < 15) {
+            if (status > 1 && status < 15) {
                 document.getElementById('reject-book').disabled = false;
                 $('#reject-book').show();
             }
