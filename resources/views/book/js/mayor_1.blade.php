@@ -338,6 +338,10 @@
             $('#manager-send').show();
             $('#send-save').show();
         }
+        if (status > 1 && status < 15) {
+            document.getElementById('reject-book').disabled = false;
+            $('#reject-book').show();
+        }
         resetMarking();
         removeMarkListener();
     }
@@ -587,36 +591,36 @@
             cancelButtonText: `ยกเลิก`,
             icon: 'question'
         }).then((result) => {
-            if (result.isConfirmed) {
-                $.ajax({
-                    type: "post",
-                    url: "/book/send_to_save",
-                    data: {
-                        id: id,
-                        users_id: users_id,
-                        status: 12,
-                        position_id: position_id
-                    },
-                    dataType: "json",
-                    headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    success: function(response) {
+        if (result.isConfirmed) {
+            $.ajax({
+                type: "post",
+                url: "/book/send_to_save",
+                data: {
+                    id: id,
+                    users_id: users_id,
+                    status: 12,
+                    position_id: position_id
+                },
+                dataType: "json",
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                success: function(response) {
+                    if (response.status) {
                         if (response.status) {
-                            if (response.status) {
-                                Swal.fire("", "แทงเรื่องเรียบร้อยแล้ว", "success");
-                                setTimeout(() => {
-                                    location.reload();
-                                }, 1500);
-                            } else {
-                                Swal.fire("", "แทงเรื่องไม่สำเร็จ", "error");
-                            }
+                            Swal.fire("", "แทงเรื่องเรียบร้อยแล้ว", "success");
+                            setTimeout(() => {
+                                location.reload();
+                            }, 1500);
+                        } else {
+                            Swal.fire("", "แทงเรื่องไม่สำเร็จ", "error");
                         }
                     }
-                });
-            }
-        });
+                }
+            });
+        }
     });
+});
     $('#signature-save').click(function(e) {
         e.preventDefault();
         var id = $('#id').val();
@@ -667,6 +671,54 @@
         } else {
             Swal.fire("", "กรุณาเลือกตำแหน่งเกษียณหนังสือ", "info");
         }
+    });
+    $('#reject-book').click(function (e) {
+        e.preventDefault();
+        Swal.fire({
+            title: "",
+            text: "ยืนยันการปฏิเสธหนังสือหรือไม่",
+            icon: "warning",
+            input: 'textarea',
+            inputPlaceholder: 'กรอกเหตุผลการปฏิเสธ',
+            showCancelButton: true,
+            confirmButtonColor: "#3085d6",
+            cancelButtonColor: "#d33",
+            cancelButtonText: "ยกเลิก",
+            confirmButtonText: "ตกลง",
+            preConfirm: (note) => {
+                if (!note) {
+                    Swal.showValidationMessage('กรุณากรอกเหตุผล');
+                }
+                return note;
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                var id = $('#id').val();
+                var note = result.value;
+                $.ajax({
+                    type: "post",
+                    url: "/book/reject",
+                    data: {
+                        id: id,
+                        note: note,
+                    },
+                    dataType: "json",
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    success: function (response) {
+                        if (response.status) {
+                            Swal.fire("", "ปฏิเสธเรียบร้อย", "success");
+                            setTimeout(() => {
+                                location.reload();
+                            }, 1500);
+                        } else {
+                            Swal.fire("", "ปฏิเสธไม่สำเร็จ", "error");
+                        }
+                    }
+                });
+            }
+        });
     });
     $(document).ready(function() {
         $('#manager-sinature').click(function(e) {
