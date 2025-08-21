@@ -40,6 +40,7 @@ class PdfController extends Controller
     public function index(Request $request)
     {
         $sort = $request->query('sort', 'name');
+        $limit = $request->query('limit', 10); // เพิ่มตัวแปร limit พร้อมค่าเริ่มต้น
         $storagePath = public_path('storage');
         $files = [];
 
@@ -76,13 +77,17 @@ class PdfController extends Controller
             usort($files, fn ($a, $b) => $b['time'] <=> $a['time']);
         } else {
             usort($files, fn ($a, $b) => strcasecmp($a['name'], $b['name']));
+        }
+
+        // เพิ่มการจำกัดจำนวนไฟล์ที่จะแสดง
+        $files = array_slice($files, 0, $limit);
 
         $data['permission_data'] = $this->permission_data;
         $data['function_key'] = 'deepdetail';
         $data['files'] = $files;
         $data['sort'] = $sort;
+        $data['limit'] = $limit; // ส่งตัวแปร limit ไปยัง View
 
         return view('pdf.index', $data);
     }
-}
 }

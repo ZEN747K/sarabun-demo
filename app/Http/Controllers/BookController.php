@@ -1387,45 +1387,84 @@ class BookController extends Controller
         $data['message'] = '';
         $id = $request->input('id');
         $note = $request->input('note');
-        $log = Log_status_book::where('position_id', $this->position_id)
-            ->where('book_id', $id)
-            ->first();
-        if ($log) {
-            $log->status = 16;
-            $log->updated_at = date('Y-m-d H:i:s');
-            if ($log->save()) {
-                $book = Book::find($id);
-                $firstUser = User::find($book->created_by);
-                $firstPosition = optional($firstUser)->position_id ?: auth()->user()->position_id;
-                $oldPath = $log->file;
-                $file = str_replace($log->position_id . '/uploads/', '', $log->file);
-                $newPath = 'directory/' . $firstPosition . '/' . $file;
-                if (Storage::exists($oldPath)) {
-                    Storage::copy($oldPath, $newPath);
+        $book = Book::find($id);
+        if ($book) {
+            if (auth()->id() == $book->created_by) {
+                $data['message'] = 'ผู้นำเข้าหนังสือไม่สามารถปฏิเสธได้';
+                return response()->json($data);
+            }
+            $firstUser = User::find($book->created_by);
+            $firstPosition = optional($firstUser)->position_id ?: auth()->user()->position_id;
+            $log = Log_status_book::where('position_id', $this->position_id)
+                ->where('book_id', $id)
+                ->orderBy('id', 'desc')
+                ->first();
+            if ($log) {
+                $log->status = 16;
+                $log->updated_at = date('Y-m-d H:i:s');
+                if ($log->save()) {
+                    $file = str_replace($log->position_id . '/uploads/', '', $log->file);
+                    $uploadPath = $firstPosition . '/uploads/' . $file;
+                    if (!Storage::exists($firstPosition . '/uploads')) {
+                        Storage::makeDirectory($firstPosition . '/uploads');
+                    }
+                    if (Storage::exists($log->file)) {
+                        Storage::copy($log->file, $uploadPath);
+                        Storage::copy($log->file, 'directory/' . $firstPosition . '/' . $file);
+                    }
+                    $firstLog = Log_status_book::where('book_id', $id)
+                        ->where('position_id', $firstPosition)
+                        ->first();
+                    if ($firstLog) {
+                        $firstLog->status = 3;
+                        $firstLog->file = $uploadPath;
+                        $firstLog->updated_at = date('Y-m-d H:i:s');
+                        $firstLog->save();
+                    } else {
+                        $firstLog = new Log_status_book();
+                        $firstLog->book_id = $id;
+                        $firstLog->status = 3;
+                        $firstLog->datetime = date('Y-m-d H:i:s');
+                        $firstLog->file = $uploadPath;
+                        $firstLog->position_id = $firstPosition;
+                        $firstLog->save();
+                    }
+                    $directorylogs = new Directory_log();
+                    $directorylogs->book_id = $id;
+                    $directorylogs->position_id = $firstPosition;
+                    $directorylogs->logs_id = $log->id;
+                    $directorylogs->file = $file;
+                    $directorylogs->created_at = date('Y-m-d H:i:s');
+                    $directorylogs->created_by = auth()->user()->id;
+                    $directorylogs->updated_at = date('Y-m-d H:i:s');
+                    $directorylogs->updated_by = auth()->user()->id;
+                    $directorylogs->save();
+                    log_active([
+                        'users_id' => auth()->user()->id,
+                        'status' => 16,
+                        'datetime' => date('Y-m-d H:i:s'),
+                        'detail' => 'ปฏิเสธหนังสือ' . ($note ? ' <span style="color:red; font-weight:bold;"> หมายเหตุ :</span> ' . $note : ''),
+                        'book_id' => $id,
+                        'position_id' => $log->position_id
+                    ]);
+                    $data['status'] = true;
+                    $data['message'] = 'ปฏิเสธหนังสือเรียบร้อย';
                 }
-                $directorylogs = new Directory_log();
-                $directorylogs->book_id = $id;
-                $directorylogs->position_id = $firstPosition;
-                $directorylogs->logs_id = $log->id;
-                $directorylogs->file = $file;
-                $directorylogs->created_at = date('Y-m-d H:i:s');
-                $directorylogs->created_by = auth()->user()->id;
-                $directorylogs->updated_at = date('Y-m-d H:i:s');
-                $directorylogs->updated_by = auth()->user()->id;
-                $directorylogs->save();
-                log_active([
-                    'users_id' => auth()->user()->id,
-                    'status' => 16,
-                    'datetime' => date('Y-m-d H:i:s'),
-                    'detail' => 'ปฏิเสธหนังสือ' . ($note ? ' <span style="color:red; font-weight:bold;"> หมายเหตุ :</span> ' . $note : ''),
-                    'book_id' => $id,
-                    'position_id' => $log->position_id
-                ]);
-                $data['status'] = true;
-                $data['message'] = 'ปฏิเสธหนังสือเรียบร้อย';
+                
             }
         }
         return response()->json($data);
+    }
+
+    public function created_position($id)
+    {
+        $book = Book::find($id);
+        $position = null;
+        if ($book) {
+            $user = User::find($book->created_by);
+            $position = optional($user)->position_id;
+        }
+        return response()->json(['position_id' => $position]);
     }
     public function check_admin(Request $request)
     {
