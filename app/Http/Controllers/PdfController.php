@@ -40,7 +40,8 @@ class PdfController extends Controller
     public function index(Request $request)
     {
         $sort = $request->query('sort', 'name');
-        $limit = $request->query('limit', 10); // เพิ่มตัวแปร limit พร้อมค่าเริ่มต้น
+        $limit = $request->query('limit', 10); // จำนวนไฟล์ต่อหน้า
+        $page = $request->query('page', 1); // หน้าปัจจุบัน
         $storagePath = public_path('storage');
         $files = [];
 
@@ -51,8 +52,7 @@ class PdfController extends Controller
                     $pdfs = File::allFiles($dir);
                     foreach ($pdfs as $pdf) {
                         if (strtolower($pdf->getExtension()) === 'pdf') {
-                            // สร้าง path แบบ relative จาก public/storage
-                           $relativePath = str_replace($storagePath.DIRECTORY_SEPARATOR, '', $pdf->getPathname());
+                            $relativePath = str_replace($storagePath.DIRECTORY_SEPARATOR, '', $pdf->getPathname());
 
                             $log = Log_status_book::where('file', 'like', '%'.$pdf->getFilename().'%')->first();
                             $bookId = null;
@@ -65,7 +65,6 @@ class PdfController extends Controller
                                 'url' => asset('storage/'.str_replace('\\', '/', $relativePath)),
                                 'time' => $pdf->getMTime(),
                                 'book_id' => $bookId,
-                                
                             ];
                         }
                     }
@@ -79,14 +78,18 @@ class PdfController extends Controller
             usort($files, fn ($a, $b) => strcasecmp($a['name'], $b['name']));
         }
 
-        // เพิ่มการจำกัดจำนวนไฟล์ที่จะแสดง
-        $files = array_slice($files, 0, $limit);
+        // คำนวณการแบ่งหน้า
+        $totalFiles = count($files);
+        $offset = ($page - 1) * $limit;
+        $files = array_slice($files, $offset, $limit);
 
         $data['permission_data'] = $this->permission_data;
         $data['function_key'] = 'deepdetail';
         $data['files'] = $files;
         $data['sort'] = $sort;
-        $data['limit'] = $limit; // ส่งตัวแปร limit ไปยัง View
+        $data['limit'] = $limit;
+        $data['page'] = $page;
+        $data['totalPages'] = ceil($totalFiles / $limit); // จำนวนหน้าทั้งหมด
 
         return view('pdf.index', $data);
     }
