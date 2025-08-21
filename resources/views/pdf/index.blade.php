@@ -5,8 +5,12 @@
     <div class="col-12 mb-3">
         <form method="get" class="mb-3">
             <select name="sort" class="form-select w-auto d-inline" onchange="this.form.submit()">
-                <option value="name" {{ $sort == 'name' ? 'selected' : '' }}>เรียงตามชื่อไฟล์</option>
-                <option value="date" {{ $sort == 'date' ? 'selected' : '' }}>เรียงตามวันที่ล่าสุด</option>
+                <option value="name_asc" {{ $sort == 'name_asc' ? 'selected' : '' }}>ชื่อไฟล์ น้อยไปมาก</option>
+                <option value="name_desc" {{ $sort == 'name_desc' ? 'selected' : '' }}>ชื่อไฟล์ มากไปน้อ</option>
+                <option value="date_desc" {{ $sort == 'date_desc' ? 'selected' : '' }}>วันที่ล่าสุด</option>
+                <option value="date_asc" {{ $sort == 'date_asc' ? 'selected' : '' }}>วันที่เก่าสุด</option>
+                <option value="book_id_desc" {{ $sort == 'book_id_desc' ? 'selected' : '' }}>หัวเรื่อง มากไปน้อย</option>
+                <option value="book_id_asc" {{ $sort == 'book_id_asc' ? 'selected' : '' }}>หัวเรื่อง น้อยไปมาก</option>
             </select>
 
             <select name="limit" class="form-select w-auto d-inline ms-2" onchange="this.form.submit()">
@@ -19,14 +23,17 @@
             </select>
         </form>
 
-        <ul class="list-group">
+        <ul class="list-group" style="font-size: 20px;">
             @forelse($files as $file)
                 <li class="list-group-item">
-                    <a href="{{ $file['url'] }}" target="_blank">{{ $file['name'] }}</a>
+                    <a href="{{ $file['url'] }}" target="_blank" style="font-size: 40px; font-weight: 500;"  class="fa fa-file-pdf-o me-1" ></a>
                     <div class="small text-muted">
                         {{ \Carbon\Carbon::createFromTimestamp($file['time'])->format('d/m/Y H:i') }}
                         @if(!empty($file['book_id']))
-                            <span class="ms-3">Book ID: {{ $file['book_id'] }}</span>
+                            <span class="ms-3">เลขหนังสือ: {{ $file['book_id'] }}</span>
+                        @endif
+                        @if(!empty($file['subject']))
+                            <span class="ms-3">หัวเรื่อง: {{ $file['subject'] }}</span>
                         @endif
                     </div>
                 </li>

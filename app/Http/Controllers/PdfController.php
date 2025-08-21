@@ -39,7 +39,7 @@ class PdfController extends Controller
 
     public function index(Request $request)
     {
-        $sort = $request->query('sort', 'name');
+        $sort = $request->query('sort', 'name_asc');
         $limit = $request->query('limit', 10); // จำนวนไฟล์ต่อหน้า
         $page = $request->query('page', 1); // หน้าปัจจุบัน
         $storagePath = public_path('storage');
@@ -57,6 +57,7 @@ class PdfController extends Controller
                             // ค้นหา Book ID โดยใช้ชื่อไฟล์ PDF
                             $book = Book::where('file', 'like', '%'.$pdf->getFilename().'%')->first();
                             $bookId = $book ? $book->inputBookregistNumber : null;
+                            $subject = $book ? $book->inputSubject : null;
 
                             // หากไม่พบในตาราง books ให้ค้นหาใน log_status_books
                             if (!$bookId) {
@@ -64,6 +65,7 @@ class PdfController extends Controller
                                 if ($log) {
                                     $book = Book::find($log->book_id);
                                     $bookId = $book ? $book->inputBookregistNumber : null;
+                                    $subject = $book ? $book->inputSubject : null;
                                 }
                             }
 
@@ -72,6 +74,7 @@ class PdfController extends Controller
                                 'url' => asset('storage/'.str_replace('\\', '/', $relativePath)),
                                 'time' => $pdf->getMTime(),
                                 'book_id' => $bookId,
+                                'subject' => $subject,
                             ];
                         }
                     }
@@ -79,10 +82,28 @@ class PdfController extends Controller
             }
         }
 
-        if ($sort === 'date') {
-            usort($files, fn ($a, $b) => $b['time'] <=> $a['time']);
-        } else {
-            usort($files, fn ($a, $b) => strcasecmp($a['name'], $b['name']));
+        switch ($sort) {
+            case 'date_desc':
+            case 'date':
+                usort($files, fn ($a, $b) => $b['time'] <=> $a['time']);
+                break;
+            case 'date_asc':
+                usort($files, fn ($a, $b) => $a['time'] <=> $b['time']);
+                break;
+            case 'book_id_desc':
+                usort($files, fn ($a, $b) => ($b['book_id'] ?? 0) <=> ($a['book_id'] ?? 0));
+                break;
+            case 'book_id_asc':
+                usort($files, fn ($a, $b) => ($a['book_id'] ?? 0) <=> ($b['book_id'] ?? 0));
+                break;
+            case 'name_desc':
+                usort($files, fn ($a, $b) => strcasecmp($b['name'], $a['name']));
+                break;
+            case 'name_asc':
+            case 'name':
+            default:
+                usort($files, fn ($a, $b) => strcasecmp($a['name'], $b['name']));
+                break;
         }
 
         // คำนวณการแบ่งหน้า
