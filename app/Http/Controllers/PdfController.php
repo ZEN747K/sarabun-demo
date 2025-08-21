@@ -58,6 +58,15 @@ class PdfController extends Controller
                             $book = Book::where('file', 'like', '%'.$pdf->getFilename().'%')->first();
                             $bookId = $book ? $book->inputBookregistNumber : null;
 
+                            // หากไม่พบในตาราง books ให้ค้นหาใน log_status_books
+                            if (!$bookId) {
+                                $log = Log_status_book::where('file', 'like', '%'.$pdf->getFilename().'%')->first();
+                                if ($log) {
+                                    $book = Book::find($log->book_id);
+                                    $bookId = $book ? $book->inputBookregistNumber : null;
+                                }
+                            }
+
                             $files[] = [
                                 'name' => $pdf->getFilename(),
                                 'url' => asset('storage/'.str_replace('\\', '/', $relativePath)),
