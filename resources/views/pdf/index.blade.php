@@ -13,6 +13,12 @@
             @forelse($files as $file)
                 <li class="list-group-item">
                     <a href="{{$file['url']}}" target="_blank">{{$file['name']}}</a>
+                    <div class="small text-muted">
+                        {{ \Carbon\Carbon::createFromTimestamp($file['time'])->format('d/m/Y H:i') }}
+                        @if(!empty($file['book_id']))
+                            <span class="ms-3">Book ID: {{ $file['book_id'] }}</span>
+                        @endif
+                    </div>
                 </li>
             @empty
                 <li class="list-group-item">ไม่พบไฟล์ PDF</li>

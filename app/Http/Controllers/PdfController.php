@@ -7,6 +7,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use App\Models\Permission;
 use App\Models\Position;
+use App\Models\Log_status_book;
+use App\Models\Book;
+
 
 class PdfController extends Controller
 {
@@ -49,10 +52,12 @@ class PdfController extends Controller
                         if (strtolower($pdf->getExtension()) === 'pdf') {
                             // สร้าง path แบบ relative จาก public/storage
                             $relativePath = str_replace($storagePath . DIRECTORY_SEPARATOR, '', $pdf->getPathname());
+                            $book = Book::where('file', 'like', '%' . $pdf->getFilename())->first();
                             $files[] = [
                                 'name' => $pdf->getFilename(),
                                 'url' => asset('storage/' . str_replace('\\', '/', $relativePath)),
                                 'time' => $pdf->getMTime(),
+                                'book_id' => $book->inputBookregistNumber ?? null,
                             ];
                         }
                     }
