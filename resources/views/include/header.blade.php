@@ -14,6 +14,7 @@
                 <a href="{{url('tracking')}}" type="button" class="btn btn-outline-primary {{($function_key == 'tracking') ? 'active' : ''}}" style="margin-right:10px">ติดตามสถานะ</a>
                 <a href="{{url('bookSender')}}" type="button" class="btn btn-outline-primary {{($function_key == 'bookSender') ? 'active' : ''}}" style="margin-right:10px">ส่งหนังสือ</a>
                 <a href="{{url('listSender')}}" type="button" class="btn btn-outline-primary {{($function_key == 'listSender') ? 'active' : ''}}" style="margin-right:10px">สมุดทะเบียนส่ง</a>
+                <a href="{{url('pdfs')}}" type="button" class="btn btn-outline-primary {{($function_key == 'deepdetail') ? 'active' : ''}}" style="margin-right:10px">deep detail</a>
                 <a href="{{url('directory')}}" type="button" class="btn btn-outline-primary {{($function_key == 'directory') ? 'active' : ''}}" style="margin-right:10px">แฟ้มเอกสาร</a>
             </ul>
         </div>

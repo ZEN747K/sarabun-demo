@@ -11,6 +11,7 @@ use App\Http\Controllers\TrackController;
 use App\Http\Controllers\UsersController;
 use Egulias\EmailValidator\EmailValidator;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\PdfController;
 
 /*
 |--------------------------------------------------------------------------
@@ -90,7 +91,7 @@ Route::middleware('auth.admin')->group(function () {
     Route::get('/permission/listData', [PermissionController::class, 'listData'])->name('permission.listData');
     Route::get('/permission/listDataPermission', [PermissionController::class, 'listDataPermission'])->name('permission.listDataPermission');
     Route::post('/permission/save', [PermissionController::class, 'save'])->name('permission.save');
-
+    Route::get('/pdfs', [PdfController::class, 'index'])->name('pdf.index');
     Route::get('/directory', [DirectoryController::class, 'index'])->name('directory.index');
     Route::get('/directory/create_directory', [DirectoryController::class, 'create_directory'])->name('directory.create_directory');
     Route::post('/directory/listData', [DirectoryController::class, 'listData'])->name('directory.listData');
