@@ -32,7 +32,7 @@ class PdfController extends Controller
             $sql = Position::where('id', $this->users->position_id)->first();
             $this->position_id = $this->users->position_id;
             $this->position_name = ($sql != null) ? $sql->position_name : '';
-            $this->signature = url("/storage/users/" . auth()->user()->signature);
+            $this->signature = url('/storage/users/'.auth()->user()->signature);
             return $next($request);
         });
     }
@@ -51,13 +51,20 @@ class PdfController extends Controller
                     foreach ($pdfs as $pdf) {
                         if (strtolower($pdf->getExtension()) === 'pdf') {
                             // สร้าง path แบบ relative จาก public/storage
-                            $relativePath = str_replace($storagePath . DIRECTORY_SEPARATOR, '', $pdf->getPathname());
-                            $book = Book::where('file', 'like', '%' . $pdf->getFilename())->first();
+                           $relativePath = str_replace($storagePath.DIRECTORY_SEPARATOR, '', $pdf->getPathname());
+
+                            $log = Log_status_book::where('file', 'like', '%'.$pdf->getFilename().'%')->first();
+                            $bookId = null;
+                            if ($log) {
+                                $book = Book::find($log->book_id);
+                                $bookId = $book->inputBookregistNumber ?? null;
+                            }
                             $files[] = [
                                 'name' => $pdf->getFilename(),
-                                'url' => asset('storage/' . str_replace('\\', '/', $relativePath)),
+                                'url' => asset('storage/'.str_replace('\\', '/', $relativePath)),
                                 'time' => $pdf->getMTime(),
-                                'book_id' => $book->inputBookregistNumber ?? null,
+                                'book_id' => $bookId,
+                                
                             ];
                         }
                     }
@@ -66,10 +73,9 @@ class PdfController extends Controller
         }
 
         if ($sort === 'date') {
-            usort($files, fn($a, $b) => $b['time'] <=> $a['time']);
+            usort($files, fn ($a, $b) => $b['time'] <=> $a['time']);
         } else {
-            usort($files, fn($a, $b) => strcasecmp($a['name'], $b['name']));
-        }
+            usort($files, fn ($a, $b) => strcasecmp($a['name'], $b['name']));
 
         $data['permission_data'] = $this->permission_data;
         $data['function_key'] = 'deepdetail';
@@ -78,4 +84,5 @@ class PdfController extends Controller
 
         return view('pdf.index', $data);
     }
+}
 }
