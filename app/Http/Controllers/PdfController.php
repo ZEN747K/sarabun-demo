@@ -54,12 +54,10 @@ class PdfController extends Controller
                         if (strtolower($pdf->getExtension()) === 'pdf') {
                             $relativePath = str_replace($storagePath.DIRECTORY_SEPARATOR, '', $pdf->getPathname());
 
-                            $log = Log_status_book::where('file', 'like', '%'.$pdf->getFilename().'%')->first();
-                            $bookId = null;
-                            if ($log) {
-                                $book = Book::find($log->book_id);
-                                $bookId = $book->inputBookregistNumber ?? null;
-                            }
+                            // ค้นหา Book ID โดยใช้ชื่อไฟล์ PDF
+                            $book = Book::where('file', 'like', '%'.$pdf->getFilename().'%')->first();
+                            $bookId = $book ? $book->inputBookregistNumber : null;
+
                             $files[] = [
                                 'name' => $pdf->getFilename(),
                                 'url' => asset('storage/'.str_replace('\\', '/', $relativePath)),
