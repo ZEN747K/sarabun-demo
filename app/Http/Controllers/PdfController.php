@@ -10,7 +10,6 @@ use App\Models\Position;
 use App\Models\Log_status_book;
 use App\Models\Book;
 
-
 class PdfController extends Controller
 {
     public $users;
@@ -32,7 +31,7 @@ class PdfController extends Controller
             $sql = Position::where('id', $this->users->position_id)->first();
             $this->position_id = $this->users->position_id;
             $this->position_name = ($sql != null) ? $sql->position_name : '';
-            $this->signature = url('/storage/users/'.auth()->user()->signature);
+            $this->signature = url('/storage/users/' . auth()->user()->signature);
             return $next($request);
         });
     }
@@ -40,8 +39,9 @@ class PdfController extends Controller
     public function index(Request $request)
     {
         $sort = $request->query('sort', 'name_asc');
-        $limit = $request->query('limit', 10); // จำนวนไฟล์ต่อหน้า
-        $page = $request->query('page', 1); // หน้าปัจจุบัน
+        $limit = $request->query('limit', 10);
+        $page = (int) $request->query('page', 1);
+        $query = strtolower(trim($request->query('q', ''))); // เพิ่มสำหรับค้นหา
         $storagePath = public_path('storage');
         $files = [];
 
@@ -52,16 +52,14 @@ class PdfController extends Controller
                     $pdfs = File::allFiles($dir);
                     foreach ($pdfs as $pdf) {
                         if (strtolower($pdf->getExtension()) === 'pdf') {
-                            $relativePath = str_replace($storagePath.DIRECTORY_SEPARATOR, '', $pdf->getPathname());
+                            $relativePath = str_replace($storagePath . DIRECTORY_SEPARATOR, '', $pdf->getPathname());
 
-                            // ค้นหา Book ID โดยใช้ชื่อไฟล์ PDF
-                            $book = Book::where('file', 'like', '%'.$pdf->getFilename().'%')->first();
+                            $book = Book::where('file', 'like', '%' . $pdf->getFilename() . '%')->first();
                             $bookId = $book ? $book->inputBookregistNumber : null;
                             $subject = $book ? $book->inputSubject : null;
 
-                            // หากไม่พบในตาราง books ให้ค้นหาใน log_status_books
                             if (!$bookId) {
-                                $log = Log_status_book::where('file', 'like', '%'.$pdf->getFilename().'%')->first();
+                                $log = Log_status_book::where('file', 'like', '%' . $pdf->getFilename() . '%')->first();
                                 if ($log) {
                                     $book = Book::find($log->book_id);
                                     $bookId = $book ? $book->inputBookregistNumber : null;
@@ -71,7 +69,7 @@ class PdfController extends Controller
 
                             $files[] = [
                                 'name' => $pdf->getFilename(),
-                                'url' => asset('storage/'.str_replace('\\', '/', $relativePath)),
+                                'url' => asset('storage/' . str_replace('\\', '/', $relativePath)),
                                 'time' => $pdf->getMTime(),
                                 'book_id' => $bookId,
                                 'subject' => $subject,
@@ -82,6 +80,16 @@ class PdfController extends Controller
             }
         }
 
+        // 🔍 Filter by คำค้นหา (เลขหนังสือ หรือ หัวเรื่อง)
+        if (!empty($query)) {
+            $files = array_filter($files, function ($file) use ($query) {
+                $book_id = strtolower($file['book_id'] ?? '');
+                $subject = strtolower($file['subject'] ?? '');
+                return str_contains($book_id, $query) || str_contains($subject, $query);
+            });
+        }
+
+        // 🔃 Sorting
         switch ($sort) {
             case 'date_desc':
             case 'date':
@@ -91,10 +99,10 @@ class PdfController extends Controller
                 usort($files, fn ($a, $b) => $a['time'] <=> $b['time']);
                 break;
             case 'book_id_desc':
-                usort($files, fn ($a, $b) => ($b['book_id'] ?? 0) <=> ($a['book_id'] ?? 0));
+                usort($files, fn ($a, $b) => ($b['book_id'] ?? '') <=> ($a['book_id'] ?? ''));
                 break;
             case 'book_id_asc':
-                usort($files, fn ($a, $b) => ($a['book_id'] ?? 0) <=> ($b['book_id'] ?? 0));
+                usort($files, fn ($a, $b) => ($a['book_id'] ?? '') <=> ($b['book_id'] ?? ''));
                 break;
             case 'name_desc':
                 usort($files, fn ($a, $b) => strcasecmp($b['name'], $a['name']));
@@ -106,19 +114,29 @@ class PdfController extends Controller
                 break;
         }
 
-        // คำนวณการแบ่งหน้า
+        // 📄 Pagination logic
         $totalFiles = count($files);
-        $offset = ($page - 1) * $limit;
-        $files = array_slice($files, $offset, $limit);
+        $totalPages = 1;
 
-        $data['permission_data'] = $this->permission_data;
-        $data['function_key'] = 'deepdetail';
-        $data['files'] = $files;
-        $data['sort'] = $sort;
-        $data['limit'] = $limit;
-        $data['page'] = $page;
-        $data['totalPages'] = ceil($totalFiles / $limit); // จำนวนหน้าทั้งหมด
+        if ($limit === 'all') {
+            $paginatedFiles = $files;
+            $limit = 'all';
+        } else {
+            $limit = (int) $limit;
+            $totalPages = ceil($totalFiles / $limit);
+            $offset = ($page - 1) * $limit;
+            $paginatedFiles = array_slice($files, $offset, $limit);
+        }
 
-        return view('pdf.index', $data);
+        // ✅ ส่งไปยัง view
+        return view('pdf.index', [
+            'permission_data' => $this->permission_data,
+            'function_key' => 'deepdetail',
+            'files' => $paginatedFiles,
+            'sort' => $sort,
+            'limit' => $limit,
+            'page' => $page,
+            'totalPages' => $totalPages,
+        ]);
     }
 }
