@@ -193,7 +193,7 @@ class BookController extends Controller
                 ->leftJoin('log_status_books', 'books.id', '=', 'log_status_books.book_id')
                 ->whereIn('log_status_books.status', $this->permission)
                 ->orderBy('created_at', 'desc')
-                ->limit(20)
+                ->limit(100)
                 ->get();
         }
         foreach ($book as &$rec) {
