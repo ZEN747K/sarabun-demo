@@ -184,7 +184,7 @@ class BookController extends Controller
         Session::forget('keyword');
         $book = new Book;
         if ($this->permission_id == '1' || $this->permission_id == '2') {
-            $book = $book->select('books.*')->whereIn('status', $this->permission)->orderBy('created_at', 'desc')->limit(5)->get();
+            $book = $book->select('books.*')->whereIn('status', $this->permission)->orderBy('created_at', 'desc')->get();
         } else {
             if ($this->position_id != null) {
                 $book = $book->where('log_status_books.position_id', $this->position_id);
@@ -193,7 +193,7 @@ class BookController extends Controller
                 ->leftJoin('log_status_books', 'books.id', '=', 'log_status_books.book_id')
                 ->whereIn('log_status_books.status', $this->permission)
                 ->orderBy('created_at', 'desc')
-                ->limit(5)
+                ->limit(20)
                 ->get();
         }
         foreach ($book as &$rec) {
@@ -215,7 +215,8 @@ class BookController extends Controller
                 ->count();
         }
         $book_count = $book_count;
-        $data['totalPages'] = (int)ceil($book_count / 5);
+        // Disable pagination on show view; always one page in UI
+        $data['totalPages'] = 1;
         $data['book'] = $book;
         $item = Position::where('parent_id')->get();
         $data['itemParent'] = [];
@@ -237,12 +238,8 @@ class BookController extends Controller
             'book' => array(),
             'status' => false
         ];
-        $pages = $request->input('pages');
-        if ($pages != 1) {
-            $pages = 5 * ($pages - 1);
-        } else {
-            $pages = 0;
-        }
+        // Ignore pagination and return all results
+        $pages = 0;
         $search = session('keyword');
         if (!empty($search)) {
             $query = Book::whereRaw('(inputSubject like "%' . $search . '%"')
@@ -251,15 +248,13 @@ class BookController extends Controller
                 ->orWhereRaw('inputContent like "%' . $search . '%"')
                 ->orWhereRaw('inputNote like "%' . $search . '%")');
             if ($this->permission_id == '1' || $this->permission_id == '2') {
-                $book = $query->select('books.*')->whereIn('status', $this->permission)->orderBy('created_at', 'desc')->limit(5)->offset($pages)->get();
+                $book = $query->select('books.*')->whereIn('status', $this->permission)->orderBy('created_at', 'desc')->get();
             } else {
                 $query = $query->where('log_status_books.position_id', $this->position_id);
                 $book = $query->select('books.*', 'log_status_books.status', 'log_status_books.file')
                     ->leftJoin('log_status_books', 'books.id', '=', 'log_status_books.book_id')
                     ->whereIn('log_status_books.status', $this->permission)
                     ->orderBy('created_at', 'desc')
-                    ->limit(5)
-                    ->offset($pages)
                     ->get();
             }
         } else {
@@ -268,8 +263,6 @@ class BookController extends Controller
                 $book = $query->select('books.*')
                     ->whereIn('status', $this->permission)
                     ->orderBy('created_at', 'desc')
-                    ->limit(5)
-                    ->offset($pages)
                     ->get();
             } else {
                 $query = $query->where('log_status_books.position_id', $this->position_id);
@@ -277,8 +270,6 @@ class BookController extends Controller
                     ->leftJoin('log_status_books', 'books.id', '=', 'log_status_books.book_id')
                     ->whereIn('log_status_books.status', $this->permission)
                     ->orderBy('created_at', 'desc')
-                    ->limit(5)
-                    ->offset($pages)
                     ->get();
             }
         }
@@ -302,13 +293,9 @@ class BookController extends Controller
             'book' => array(),
             'status' => false
         ];
-        $pages = $request->input('pages');
+        // Ignore pagination for search; return all matching rows
+        $pages = 0;
         $search = $request->input('search');
-        if ($pages != 1) {
-            $pages = 5 * ($pages - 1);
-        } else {
-            $pages = 0;
-        }
         if (!empty($search)) {
             session(['keyword' => $search]);
             $query = Book::whereRaw('(inputSubject like "%' . $search . '%"')
@@ -331,16 +318,12 @@ class BookController extends Controller
             $book = $query->select('books.*')
                 ->whereIn('status', $this->permission)
                 ->orderBy('created_at', 'desc')
-                ->limit(5)
-                ->offset($pages)
                 ->get();
         } else {
             $book = $query->select('books.*', 'log_status_books.status', 'log_status_books.file')
                 ->leftJoin('log_status_books', 'books.id', '=', 'log_status_books.book_id')
                 ->whereIn('log_status_books.status', $this->permission)
                 ->orderBy('created_at', 'desc')
-                ->limit(5)
-                ->offset($pages)
                 ->get();
         }
 
@@ -361,20 +344,15 @@ class BookController extends Controller
                 $query = $query->where('log_status_books.position_id', $this->position_id);
             }
         }
-        if ($this->permission_id == '1' || $this->permission_id == '2') {
-            $book_count = $query->whereIn('status', $this->permission)->count();
-        } else {
-            $book_count = $query->whereIn('log_status_books.status', $this->permission)
-                ->leftJoin('log_status_books', 'books.id', '=', 'log_status_books.book_id')
-                ->count();
-        }
+        // With full result set returned, force single page in UI
+        $book_count = 0;
         if (!empty($book)) {
             foreach ($book as &$rec) {
                 $rec->showTime = date('H:i', strtotime($rec->inputRecieveDate));
                 $rec->url = url("storage/" . $rec->file);
                 $rec->inputBookregistNumber = numberToThaiDigits($rec->inputBookregistNumber);
             }
-            $data['totalPages'] = (int)ceil($book_count / 5);
+            $data['totalPages'] = 1;
             $data['book'] = $book;
             $data['status'] = true;
         }

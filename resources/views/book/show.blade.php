@@ -135,7 +135,7 @@
             </a>
             @endforeach
         </div>
-        <div class="d-flex justify-content-end mt-2">
+        <div class="d-flex justify-content-end mt-2 hidden">
             <button class="btn btn-outline-dark btn-sm" style="margin-right: 5px;font-size: 5px;" id="prevPage"><i class="fa fa-arrow-circle-left"></i></button>
             <select id="page-select-card" class="border-dark">
                 @for($page = 1; $page <= $totalPages; $page++)
