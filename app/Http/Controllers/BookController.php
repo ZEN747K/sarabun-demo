@@ -63,7 +63,7 @@ class BookController extends Controller
         }
         return view('book.index', $data);
     }
-
+//
     public function bookType(Request $request)
     {
         $id = $request->input('id');
