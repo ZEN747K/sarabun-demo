@@ -58,6 +58,19 @@
         border: 1px solid #ccc;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     }
+    /* Rounder search box corners */
+    .input-group #inputSearch {
+        border-top-left-radius: 12px !important;
+        border-bottom-left-radius: 12px !important;
+    }
+    .input-group #search_btn {
+        border-top-right-radius: 12px !important;
+        border-bottom-right-radius: 12px !important;
+    }
+    /* Keep a clean seam between input and button */
+    .input-group #search_btn {
+        border-left-width: 1px;
+    }
 </style>
 @endsection
 
@@ -268,6 +281,86 @@
         </form>
     </div>
 </div>
+<script>
+    (function() {
+        var input = document.getElementById('inputSearch');
+        var btn = document.getElementById('search_btn');
+        var allBtn = document.getElementById('btn-all-docs');
+        if (input) {
+            input.setAttribute('placeholder', 'ค้นหา');
+            try { input.value = @json($search ?? ''); } catch (e) {}
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') { e.preventDefault(); doSearch(); }
+            });
+        }
+        if (btn) {
+            btn.textContent = 'ค้นหา';
+            btn.addEventListener('click', function(){ doSearch(); });
+        }
+        if (allBtn) {
+            var spans = allBtn.querySelectorAll('span');
+            if (spans.length >= 2) {
+                spans[0].textContent = 'จำนวนเอกสารทั้งหมด';
+                spans[1].textContent = (@json($book_count ?? 0)) + ' ฉบับ';
+            }
+        }
+        function doSearch() {
+            var q = (input && input.value ? input.value.trim() : '');
+            var base = @json(route('book.show'));
+            window.location.href = q ? (base + '?q=' + encodeURIComponent(q)) : base;
+        }
+    })();
+</script>
+<script>
+    (function() {
+        var input = document.getElementById('inputSearch');
+        var btn = document.getElementById('search_btn');
+        var allBtn = document.getElementById('btn-all-docs');
+        if (input) {
+            input.setAttribute('placeholder', '\u0E04\u0E49\u0E19\u0E2B\u0E32');
+            try { input.value = @json($search ?? ''); } catch (e) {}
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') { e.preventDefault(); doSearch2(); }
+            });
+        }
+        if (btn) {
+            btn.textContent = '\u0E04\u0E49\u0E19\u0E2B\u0E32';
+            btn.addEventListener('click', function(){ doSearch2(); });
+        }
+        if (allBtn) {
+            var spans = allBtn.querySelectorAll('span');
+            if (spans.length >= 2) {
+                spans[0].textContent = '\u0E08\u0E33\u0E19\u0E27\u0E19\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14';
+                spans[1].textContent = (@json($book_count ?? 0)) + ' ' + '\u0E09\u0E1A\u0E31\u0E1A';
+            }
+        }
+        function applyClientFilter2(q){
+            try{
+                var list = document.getElementById('box-card-item');
+                if(!list) return;
+                var items = list.querySelectorAll('a');
+                var keyword = (q||'').toString().trim();
+                if(keyword === '') { items.forEach(function(a){ a.style.display=''; }); return; }
+                items.forEach(function(a){
+                    var header = a.querySelector('.card-header');
+                    var body = a.querySelector('.card-body');
+                    var text = '';
+                    if(header) text += header.textContent || '';
+                    if(body) text += ' ' + (body.textContent || '');
+                    a.style.display = text.indexOf(keyword) !== -1 ? '' : 'none';
+                });
+            }catch(err){}
+        }
+        function doSearch2() {
+            var q = (input && input.value ? input.value.trim() : '');
+            var base = @json(route('book.show'));
+            var target = q ? (base + '?q=' + encodeURIComponent(q)) : base;
+            // Always reload to let server-side filtering run (Thai-safe)
+            window.location.href = target;
+        }
+        try { applyClientFilter2(@json($search ?? '')); } catch(e){}
+    })();
+</script>
 @endsection
 
 @extends($extends)
