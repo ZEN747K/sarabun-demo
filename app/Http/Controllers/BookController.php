@@ -21,6 +21,7 @@ use Webklex\IMAP\Facades\Client;
 use Webklex\PHPIMAP\ClientManager;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 class BookController extends Controller
 {
 
@@ -44,7 +45,13 @@ class BookController extends Controller
             $this->position_data = $sql;
             $this->position_id = $this->users->position_id;
             $this->position_name = ($sql != null) ? $sql->position_name : '';
-            $this->signature = url("/storage/users/" . auth()->user()->signature);
+            $sig = auth()->user()->signature ?? '';
+            if (!empty($sig)) {
+                $sigRel = Str::startsWith($sig, 'users/') ? $sig : ('users/' . ltrim($sig, '/'));
+                $this->signature = url('/storage/' . $sigRel);
+            } else {
+                $this->signature = '';
+            }
             return $next($request);
         });
     }
@@ -1026,7 +1033,12 @@ class BookController extends Controller
                                     $imgW = ($widthPx / 3.3) * 0.3528;
                                     $imgH = ($heightPx / 1.33) * 0.3528;
                                 }
-                                $pdf->Image(public_path('storage/users/' . auth()->user()->signature), $signatureX, $signatureY, $imgW, $imgH);
+                                $sig = auth()->user()->signature ?? '';
+                                $sigRel = Str::startsWith($sig, 'users/') ? $sig : ('users/' . ltrim($sig, '/'));
+                                $sigAbs = public_path('storage/' . $sigRel);
+                                if (file_exists($sigAbs)) {
+                                    $pdf->Image($sigAbs, $signatureX, $signatureY, $imgW, $imgH);
+                                }
                             
                             }
                         }
@@ -1088,7 +1100,12 @@ class BookController extends Controller
                                 $imgW = ($widthPx / 3.3) * 0.3528;
                                 $imgH = ($heightPx / 1.33) * 0.3528;
                             }
-                            $pdf->Image(public_path('storage/users/' . auth()->user()->signature), $signatureX, $signatureY, $imgW, $imgH);
+                            $sig = auth()->user()->signature ?? '';
+                            $sigRel = Str::startsWith($sig, 'users/') ? $sig : ('users/' . ltrim($sig, '/'));
+                            $sigAbs = public_path('storage/' . $sigRel);
+                            if (file_exists($sigAbs)) {
+                                $pdf->Image($sigAbs, $signatureX, $signatureY, $imgW, $imgH);
+                            }
                         
                         }
                     }

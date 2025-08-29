@@ -1,0 +1,540 @@
+    $('#manager-save').click(function(e) {
+
+    });
+        });
+            }
+                }
+                    }
+                        $('#page-select-card').append('<option value="' + index + '">' + index + '</option>');
+                    for (let index = 1; index <= pageTotal; index++) {
+                    $("#page-select-card").empty();
+                    });
+                        $('#box-card-item').append($html);
+                        $html = '<a href="javascript:void(0)" onclick="openPdf(' + "'" + element.url + "'" + ',' + "'" + element.id + "'" + ',' + "'" + element.status + "'" + ',' + "'" + element.type + "'" + ',' + "'" + element.is_number_stamp + "'" + ',' + "'" + element.inputBookregistNumber + "'" + ',' + "'" + element.position_id + "'" + ')"><div class="card border-' + color + ' mb-2"><div class="card-header text-dark fw-bold">' + element.inputSubject + '</div><div class="card-body text-dark"><div class="row"><div class="col-9">' + element.selectBookFrom + '</div><div class="col-3 fw-bold">' + element.showTime + ' น.</div></div></div></div></a>';
+                        }
+                            var color = 'warning';
+                        if (element.type != 1) {
+                        var color = 'info';
+                    response.book.forEach(element => {
+                    pageTotal = response.totalPages;
+                    pageNumTalbe = 1;
+                    $('#div-canvas').html('<div style="position: relative;"><canvas id="pdf-render"></canvas><canvas id="mark-layer" style="position: absolute; left: 0; top: 0;"></canvas></div>');
+                    $('#box-card-item').html('');
+                if (response.status == true) {
+            success: function(response) {
+            dataType: "json",
+            },
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            headers: {
+            },
+                search: $('#inputSearch').val()
+                pages: 1,
+            data: {
+            url: "/book/dataListSearch",
+            type: "post",
+        $.ajax({
+        document.getElementById('manager-save').disabled = true;
+        document.getElementById('manager-sinature').disabled = false;
+        $('#users_id').val('');
+        $('#txt_label').text('');
+        $('.btn-default').hide();
+        $('#positionY').val('');
+        $('#positionX').val('');
+        $('#id').val('');
+        e.preventDefault();
+    $('#search_btn').click(function(e) {
+
+    }
+        });
+            }
+                }
+                    });
+                        $('#box-card-item').append($html);
+                        $html = '<a href="javascript:void(0)" onclick="openPdf(' + "'" + element.url + "'" + ',' + "'" + element.id + "'" + ',' + "'" + element.status + "'" + ',' + "'" + element.type + "'" + ',' + "'" + element.is_number_stamp + "'" + ',' + "'" + element.inputBookregistNumber + "'" + ',' + "'" + element.position_id + "'" + ')"><div class="card border-' + color + ' mb-2"><div class="card-header text-dark fw-bold">' + element.inputSubject + '</div><div class="card-body text-dark"><div class="row"><div class="col-9">' + element.selectBookFrom + '</div><div class="col-3 fw-bold">' + element.showTime + ' น.</div></div></div></div></a>';
+                        }
+                            var color = 'warning';
+                        if (element.type != 1) {
+                        var color = 'info';
+                    response.book.forEach(element => {
+                    $('#div-canvas').html('<div style="position: relative;"><canvas id="pdf-render"></canvas><canvas id="mark-layer" style="position: absolute; left: 0; top: 0;"></canvas></div>');
+                    $('#box-card-item').empty();
+                if (response.status == true) {
+            success: function(response) {
+            dataType: "json",
+            },
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            headers: {
+            },
+                pages: pages,
+            data: {
+            url: "/book/dataList",
+            type: "post",
+        $.ajax({
+        document.getElementById('manager-save').disabled = true;
+        document.getElementById('manager-sinature').disabled = false;
+        $('#users_id').val('');
+        $('#txt_label').text('');
+        $('#positionY').val('');
+        $('#positionX').val('');
+        $('#id').val('');
+    function ajaxTable(pages) {
+
+    document.getElementById('prevPage').addEventListener('click', onPrevPageTable);
+    document.getElementById('nextPage').addEventListener('click', onNextPageTable);
+    }
+        ajaxTable(pageNumTalbe);
+        selectPageTable.value = pageNumTalbe;
+        pageNumTalbe--;
+        }
+            return;
+        if (pageNumTalbe <= 1) {
+    function onPrevPageTable() {
+
+    }
+        ajaxTable(pageNumTalbe);
+        selectPageTable.value = pageNumTalbe;
+        pageNumTalbe++;
+        }
+            return;
+        if (pageNumTalbe >= pageTotal) {
+    function onNextPageTable() {
+
+    });
+        ajaxTable(selectedPage);
+        let selectedPage = parseInt(this.value);
+    selectPageTable.addEventListener('change', function() {
+
+    }
+        markCtxInsert.clearRect(0, 0, markCanvasInsert.width, markCanvasInsert.height);
+        markCtx.clearRect(0, 0, markCanvas.width, markCanvas.height);
+        var markCtxInsert = markCanvasInsert.getContext('2d');
+        var markCtx = markCanvas.getContext('2d');
+        var markCanvasInsert = document.getElementById('mark-layer-insert');
+        var markCanvas = document.getElementById('mark-layer');
+    function resetMarking() {
+
+    }
+        }
+            markEventListenerInsert = null;
+            markCanvasInsert.removeEventListener('click', markEventListenerInsert);
+        if (markEventListenerInsert) {
+        }
+            markEventListener = null;
+            markCanvas.removeEventListener('click', markEventListener);
+        if (markEventListener) {
+        var markCanvasInsert = document.getElementById('mark-layer-insert');
+        var markCanvas = document.getElementById('mark-layer');
+    function removeMarkListener() {
+
+    }
+        removeMarkListener();
+        resetMarking();
+        }
+            $('#manager-send').show();
+        if (status == 13) {
+        }
+            $('#insert-pages').show();
+            $('#manager-save').show();
+            $('#manager-sinature').show();
+        if (status == 12) {
+        document.getElementById('manager-save').disabled = true;
+        $('#users_id').val('');
+        $('#txt_label').text('');
+        $('#positionY').val('');
+        $('#positionX').val('');
+        $('#position_id').val(position_id);
+        $('#id').val(id);
+        pdf(url);
+        $('#div-canvas').html('<div style="position: relative;"><canvas id="pdf-render"></canvas><canvas id="mark-layer" style="position: absolute; left: 0; top: 0;"></canvas></div>');
+        document.getElementById('send-save').disabled = true;
+        document.getElementById('save-stamp').disabled = true;
+        document.getElementById('manager-sinature').disabled = false;
+        $('.btn-default').hide();
+    function openPdf(url, id, status, type, is_check = '', number_id, position_id) {
+
+    let markEventListenerInsert = null;
+    let markEventListener = null;
+
+    }
+        });
+            });
+                }
+                    }
+                        Swal.fire("", response.message, "error");
+                        $('#exampleModal').modal('hide');
+                    } else {
+                        markCanvas.addEventListener('click', markEventListenerInsert);
+                        var markCanvas = document.getElementById('mark-layer-insert');
+
+                        };
+                            });
+                                i++;
+                                }
+                                    });
+                                        stop++;
+                                        }
+                                            i++;
+                                        if (stop != 0) {
+                                    lines.forEach(element => {
+                                    var stop = 0;
+                                if (lines.length > 1) {
+                                }
+                                    drawTextHeaderSignatureInsert('15px Sarabun', startX, (startY + plus_y + (20 * lineBreakCount)) + (20 * i), checkbox_text);
+                                if (element != 4) {
+                                var lines = checkbox_text.split('\n');
+                                }
+                                        break;
+                                        checkbox_text = `{{convertDateToThai(date("Y-m-d"))}}`;
+                                    case '3':
+                                        break;
+                                        checkbox_text = `{{$permission_data->permission_name}}`;
+                                    case '2':
+                                        break;
+                                        checkbox_text = `({{$users->fullname}})`;
+                                    case '1':
+                                switch (element) {
+                            checkedValues.forEach(element => {
+
+                            });
+                                }
+                                    plus_y = 160;
+                                if (element == 4) {
+                            checkedValues.forEach(element => {
+                            var plus_y = 20;
+                            var checkbox_x = 0;
+                            var checkbox_text = '';
+                            var i = 0;
+
+                            drawTextHeaderSignatureInsert('15px Sarabun', startX, startY, text);
+                            drawMarkSignatureInsert(startX - 40, startY + (20 * lineBreakCount), endX, endY, checkedValues);
+                            }).get();
+                                return $(this).val();
+                            var checkedValues = $('input[type="checkbox"]:checked').map(function() {
+                            var lineBreakCount = countLineBreaks(text);
+                            var text = $('#modal-text').val();
+
+                            $('#positionPages').val(2);
+                            $('#positionY').val(startY);
+                            $('#positionX').val(startX);
+                            };
+                                endY
+                                endX,
+                                startY,
+                                startX,
+                            markCoordinates = {
+
+                            var endY = startY + 115;
+                            var endX = startX + 213;
+
+                            var startY = (e.clientY - rect.top);
+                            var startX = (e.clientX - rect.left);
+                            var rect = markCanvas.getBoundingClientRect();
+                            var markCtx = markCanvas.getContext('2d');
+                            var markCanvas = document.getElementById('mark-layer-insert');
+                        markEventListenerInsert = function(e) {
+
+                        markCanvas.addEventListener('click', markEventListener);
+                        try { markEventListener(); } catch (e) {}
+                        var markCanvas = document.getElementById('mark-layer');
+
+                        };
+                            redrawSignatureBoxes();
+                            function onResizeEnd(){ isResizing=false; activeBox=null; window.removeEventListener('mousemove', onResizeMove); window.removeEventListener('mouseup', onResizeEnd); }
+                            function onResizeMove(e){ if(!isResizing||!activeBox) return; var r=markCanvas.getBoundingClientRect(); var x=e.clientX-r.left; var y=e.clientY-r.top; var minW=40, minH=30; activeBox.endX=Math.min(markCanvas.width, Math.max(activeBox.startX+minW, x)); activeBox.endY=Math.min(markCanvas.height, Math.max(activeBox.startY+minH, y)); redrawSignatureBoxes(); }
+                            function onDragEnd(){ isDragging=false; activeBox=null; window.removeEventListener('mousemove', onDragMove); window.removeEventListener('mouseup', onDragEnd); }
+                            function onDragMove(e){ if(!isDragging||!activeBox) return; var r=markCanvas.getBoundingClientRect(); var x=e.clientX-r.left; var y=e.clientY-r.top; var w=activeBox.endX-activeBox.startX; var h=activeBox.endY-activeBox.startY; var nsx=Math.max(0, Math.min(markCanvas.width-w, x-dragOffsetX)); var nsy=Math.max(0, Math.min(markCanvas.height-h, y-dragOffsetY)); activeBox.startX=nsx; activeBox.startY=nsy; activeBox.endX=nsx+w; activeBox.endY=nsy+h; if (activeBox.type==='text'){ $('#positionX').val(nsx); $('#positionY').val(nsy);} redrawSignatureBoxes(); }
+                            };
+                            markCanvas.onmousedown=function(e){ var r=markCanvas.getBoundingClientRect(); var x=e.clientX-r.left; var y=e.clientY-r.top; var checked=$('input[type="checkbox"]:checked').map(function(){return $(this).val();}).get(); var hasImg=checked.includes('4'); if (isOnResizeHandle(x,y, signatureCoordinates.textBox)) { isResizing=true; activeBox=signatureCoordinates.textBox; e.preventDefault(); window.addEventListener('mousemove', onResizeMove); window.addEventListener('mouseup', onResizeEnd);} else if (isOnResizeHandle(x,y, signatureCoordinates.bottomBox)) { isResizing=true; activeBox=signatureCoordinates.bottomBox; e.preventDefault(); window.addEventListener('mousemove', onResizeMove); window.addEventListener('mouseup', onResizeEnd);} else if (hasImg && isOnResizeHandle(x,y, signatureCoordinates.imageBox)) { isResizing=true; activeBox=signatureCoordinates.imageBox; e.preventDefault(); window.addEventListener('mousemove', onResizeMove); window.addEventListener('mouseup', onResizeEnd);} else { activeBox=getActiveBox(x,y); if (activeBox){ isDragging=true; dragOffsetX=x-activeBox.startX; dragOffsetY=y-activeBox.startY; e.preventDefault(); window.addEventListener('mousemove', onDragMove); window.addEventListener('mouseup', onDragEnd);} }
+                            markCanvas.addEventListener('mousemove', function(e){ var r=markCanvas.getBoundingClientRect(); var x=e.clientX-r.left; var y=e.clientY-r.top; var checked=$('input[type="checkbox"]:checked').map(function(){return $(this).val();}).get(); var hasImg=checked.includes('4'); if (isOnResizeHandle(x,y, signatureCoordinates.textBox) || isOnResizeHandle(x,y, signatureCoordinates.bottomBox) || (hasImg && isOnResizeHandle(x,y, signatureCoordinates.imageBox))) markCanvas.style.cursor='se-resize'; else if (getActiveBox(x,y)) markCanvas.style.cursor='move'; else markCanvas.style.cursor='default'; });
+                            function getActiveBox(x,y){ var checked=$('input[type="checkbox"]:checked').map(function(){return $(this).val();}).get(); var hasImg=checked.includes('4'); if (isInBox(x,y, signatureCoordinates.bottomBox)) return signatureCoordinates.bottomBox; if (hasImg && isInBox(x,y, signatureCoordinates.imageBox)) return signatureCoordinates.imageBox; if (isInBox(x,y, signatureCoordinates.textBox)) return signatureCoordinates.textBox; return null; }
+                            function isInBox(x,y,box){ return x>=box.startX && x<=box.endX && y>=box.startY && y<=box.endY; }
+                            function isOnResizeHandle(x,y,box){ return x>=box.endX-16 && x<=box.endX && y>=box.endY-16 && y<=box.endY; }
+                            var isDragging=false, isResizing=false, activeBox=null, dragOffsetX=0, dragOffsetY=0;
+                            }
+                                var i=0; checkedValues.forEach(function(el){ if (el!='4'){ var t=''; switch(el){ case '1': t=`({{$users->fullname}})`; break; case '2': t=`{{$permission_data->permission_name}}`; break; case '3': t=`{{convertDateToThai(date("Y-m-d"))}}`; break; } drawTextHeaderSignature((15*bottomScale).toFixed(1)+'px Sarabun', (bottomBox.startX+bottomBox.endX)/2, bottomBox.startY + 25*bottomScale + (20*i*bottomScale), t); i++; } });
+                                var bottomScale = Math.min((bottomBox.endX-bottomBox.startX)/220,(bottomBox.endY-bottomBox.startY)/80); bottomScale = Math.max(0.5, Math.min(2.5, bottomScale));
+                                markCtx.fillStyle='#fff'; markCtx.strokeStyle='#6f42c1'; markCtx.lineWidth=2; markCtx.fillRect(bottomBox.endX-resizeHandleSize, bottomBox.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.strokeRect(bottomBox.endX-resizeHandleSize, bottomBox.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.restore();
+                                markCtx.save(); markCtx.strokeStyle='purple'; markCtx.lineWidth=0.5; markCtx.strokeRect(bottomBox.startX, bottomBox.startY, bottomBox.endX-bottomBox.startX, bottomBox.endY-bottomBox.startY);
+                                var bottomBox = signatureCoordinates.bottomBox;
+                                // bottom box
+                                }
+                                    var imgW=imageBox.endX-imageBox.startX, imgH=imageBox.endY-imageBox.startY; if (signatureImgLoaded){ markCtx.drawImage(signatureImg, imageBox.startX, imageBox.startY, imgW, imgH); imgData={x:imageBox.startX,y:imageBox.startY,width:imgW,height:imgH}; }
+                                    markCtx.fillStyle='#fff'; markCtx.strokeStyle='#28a745'; markCtx.lineWidth=2; markCtx.fillRect(imageBox.endX-resizeHandleSize, imageBox.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.strokeRect(imageBox.endX-resizeHandleSize, imageBox.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.restore();
+                                    markCtx.save(); markCtx.strokeStyle='green'; markCtx.lineWidth=0.5; markCtx.strokeRect(imageBox.startX, imageBox.startY, imageBox.endX-imageBox.startX, imageBox.endY-imageBox.startY);
+                                    var imageBox = signatureCoordinates.imageBox;
+                                if (hasImage) {
+                                var hasImage = checkedValues.includes('4');
+                                // image box
+                                drawTextHeaderSignature((15*textScale).toFixed(1)+'px Sarabun', (textBox.startX+textBox.endX)/2, textBox.startY+25*textScale, text);
+                                var textScale = Math.min((textBox.endX-textBox.startX)/220,(textBox.endY-textBox.startY)/40); textScale = Math.max(0.5, Math.min(2.5, textScale));
+                                markCtx.fillStyle='#fff'; markCtx.strokeStyle='#007bff'; markCtx.lineWidth=2; markCtx.fillRect(textBox.endX-resizeHandleSize, textBox.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.strokeRect(textBox.endX-resizeHandleSize, textBox.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.restore();
+                                markCtx.save(); markCtx.strokeStyle='blue'; markCtx.lineWidth=0.5; markCtx.strokeRect(textBox.startX, textBox.startY, textBox.endX-textBox.startX, textBox.endY-textBox.startY);
+                                var textBox = signatureCoordinates.textBox;
+                                // text box
+                                var checkedValues = $('input[type="checkbox"]:checked').map(function(){ return $(this).val(); }).get();
+                                var text = $('#modal-text').val();
+                                markCtx.clearRect(0,0,markCanvas.width, markCanvas.height);
+                            function redrawSignatureBoxes(){
+                            var resizeHandleSize = 16;
+
+                            }
+                                $('#positionPages').val(1);
+                                $('#positionY').val(startY);
+                                $('#positionX').val(startX);
+                                };
+                                    bottomBox: { startX: startX, startY: startY + defaultTextHeight + gap + defaultImageHeight + gap, endX: startX + defaultTextWidth, endY: startY + defaultTextHeight + gap + defaultImageHeight + gap + defaultBottomBoxHeight, type: 'bottom' }
+                                    imageBox: { startX: startX - 13, startY: startY + defaultTextHeight + gap, endX: (startX - 13) + defaultImageWidth, endY: startY + defaultTextHeight + gap + defaultImageHeight, type: 'image' },
+                                    textBox: { startX: startX, startY: startY, endX: startX + defaultTextWidth, endY: startY + defaultTextHeight, type: 'text' },
+                                signatureCoordinates = {
+                                var startY = (markCanvas.height - totalH) / 2;
+                                var totalH = defaultTextHeight + gap + defaultImageHeight + gap + defaultBottomBoxHeight + 20;
+                                var startX = (markCanvas.width - defaultTextWidth) / 2;
+                                var gap = 10;
+                                var defaultImageHeight = 130;
+                                var defaultImageWidth = 240;
+                                var defaultBottomBoxHeight = 80;
+                                var defaultTextHeight = 40;
+                                var defaultTextWidth = 220;
+                            if (!signatureCoordinates) {
+
+                            var markCtx = markCanvas.getContext('2d');
+                            var markCanvas = document.getElementById('mark-layer');
+                        markEventListener = function() {
+                        // Initialize 3-box layout (text → image → bottom) and enable drag/resize
+
+                        document.getElementById('manager-save').disabled = false;
+                        removeMarkListener();
+                        resetMarking();
+                        }, 1500);
+                            swal.close();
+                        setTimeout(() => {
+                        $('#exampleModal').modal('hide');
+                    if (response.status) {
+                success: function(response) {
+                },
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                headers: {
+                processData: false,
+                contentType: false,
+                dataType: "json",
+                data: formData,
+                url: "/book/confirm_signature",
+                type: "post",
+            $.ajax({
+            Swal.showLoading();
+            $('#exampleModal').modal('hide');
+            var formData = new FormData(this);
+            e.preventDefault();
+        $('#modalForm').on('submit', function(e) {
+
+        }
+            }
+                markCtx.fillText(lines[i], centeredX, startY + (i * lineHeight));
+                var centeredX = startX - (textWidth / 2);
+                var textWidth = markCtx.measureText(lines[i]).width;
+            for (var i = 0; i < lines.length; i++) {
+            var lineHeight = 20;
+            var lines = text.split('\n');
+            markCtx.fillStyle = "blue";
+            markCtx.font = type;
+            var markCtx = markCanvas.getContext('2d');
+            var markCanvas = document.getElementById('mark-layer-insert');
+        function drawTextHeaderSignatureInsert(type, startX, startY, text) {
+
+        }
+            }
+                markCtx.fillText(lines[i], centeredX, startY + (i * lineHeight));
+                var centeredX = startX - (textWidth / 2);
+                var textWidth = markCtx.measureText(lines[i]).width;
+            for (var i = 0; i < lines.length; i++) {
+            var lineHeight = 20;
+            var lines = text.split('\n');
+            markCtx.fillStyle = "blue";
+            markCtx.font = type;
+            var markCtx = markCanvas.getContext('2d');
+            var markCanvas = document.getElementById('mark-layer');
+        function drawTextHeaderSignature(type, startX, startY, text) {
+
+        }
+            });
+                }
+                    }
+                        };
+                            height: imgHeight
+                            width: imgWidth,
+                            y: centeredY,
+                            x: centeredX,
+                        imgData = {
+
+                        markCtx.drawImage(img, centeredX, centeredY, imgWidth, imgHeight);
+
+                        var centeredY = (startY + 60) - (imgHeight / 2);
+                        var centeredX = (startX + 50) - (imgWidth / 2);
+
+                        var imgHeight = 130;
+                        var imgWidth = 240;
+                    img.onload = function() {
+                    img.src = signature;
+                    var img = new Image();
+                if (element == 4) {
+            checkedValues.forEach(element => {
+
+            markCtx.clearRect(0, 0, markCanvas.width, markCanvas.height);
+            var markCtx = markCanvas.getContext('2d');
+            var markCanvas = document.getElementById('mark-layer-insert');
+
+            markCtx.clearRect(0, 0, markCanvas.width, markCanvas.height);
+            var markCtx = markCanvas.getContext('2d');
+            var markCanvas = document.getElementById('mark-layer');
+        function drawMarkSignatureInsert(startX, startY, endX, endY, checkedValues) {
+
+        }
+            });
+                }
+                    }
+                        };
+                            height: imgHeight
+                            width: imgWidth,
+                            y: centeredY,
+                            x: centeredX,
+                        imgData = {
+
+                        markCtx.drawImage(img, centeredX, centeredY, imgWidth, imgHeight);
+
+                        var centeredY = (startY + 60) - (imgHeight / 2);
+                        var centeredX = (startX + 50) - (imgWidth / 2);
+
+                        var imgHeight = 130;
+                        var imgWidth = 240;
+                    img.onload = function() {
+                    img.src = signature;
+                    var img = new Image();
+                if (element == 4) {
+            checkedValues.forEach(element => {
+
+            markCtx.clearRect(0, 0, markCanvas.width, markCanvas.height);
+            var markCtx = markCanvas.getContext('2d');
+            var markCanvas = document.getElementById('mark-layer');
+
+            markCtx.clearRect(0, 0, markCanvas.width, markCanvas.height);
+            var markCtx = markCanvas.getContext('2d');
+            var markCanvas = document.getElementById('mark-layer-insert');
+        function drawMarkSignature(startX, startY, endX, endY, checkedValues) {
+
+        }
+            return lines.length - 1;
+            var lines = text.split('\n');
+        function countLineBreaks(text) {
+        // let markEventListener = null;
+
+
+        document.getElementById('prev').addEventListener('click', onPrevPage);
+        document.getElementById('next').addEventListener('click', onNextPage);
+
+
+        });
+            document.getElementById('manager-sinature').disabled = false;
+            renderPage(pageNum);
+
+            }
+                selectPage.appendChild(option);
+                option.textContent = i;
+                option.value = i;
+                let option = document.createElement('option');
+            for (let i = 1; i <= pdfDoc.numPages; i++) {
+            pdfDoc = pdfDoc_;
+        pdfjsLib.getDocument(url).promise.then(function(pdfDoc_) {
+
+        });
+            }
+                queueRenderPage(selectedPage);
+                pageNum = selectedPage;
+            if (selectedPage && selectedPage >= 1 && selectedPage <= pdfDoc.numPages) {
+            let selectedPage = parseInt(this.value);
+        selectPage.addEventListener('change', function() {
+
+        }
+            queueRenderPage(pageNum);
+            pageNum--;
+            }
+                return;
+            if (pageNum <= 1) {
+        function onPrevPage() {
+
+        }
+            queueRenderPage(pageNum);
+            pageNum++;
+            }
+                return;
+            if (pageNum >= pdfDoc.numPages) {
+        function onNextPage() {
+
+        }
+            }
+                renderPage(num);
+            } else {
+                pageNumPending = num;
+            if (pageRendering) {
+        function queueRenderPage(num) {
+
+        }
+            selectPage.value = num;
+
+            });
+                });
+                    }
+                        pageNumPending = null;
+                        renderPage(pageNumPending);
+                    if (pageNumPending !== null) {
+                    pageRendering = false;
+                renderTask.promise.then(function() {
+
+                let renderTask = page.render(renderContext);
+                };
+                    viewport: viewport
+                    canvasContext: pdfCtx,
+                let renderContext = {
+
+                markCanvas.width = viewport.width;
+                markCanvas.height = viewport.height;
+                pdfCanvas.width = viewport.width;
+                pdfCanvas.height = viewport.height;
+                });
+                    scale: scale
+                let viewport = page.getViewport({
+            pdfDoc.getPage(num).then(function(page) {
+
+            pageRendering = true;
+        function renderPage(num) {
+
+        document.getElementById('manager-save').disabled = true;
+
+        var markCoordinates = null;
+
+            selectPage = document.getElementById('page-select');
+            markCtx = markCanvas.getContext('2d'),
+            markCanvas = document.getElementById('mark-layer'),
+            pdfCtxInsert = pdfCanvasInsert.getContext('2d'),
+            pdfCtx = pdfCanvas.getContext('2d'),
+            pdfCanvasInsert = document.getElementById('pdf-render-insert'),
+            pdfCanvas = document.getElementById('pdf-render'),
+            scale = 1.5,
+            pageNumPending = null,
+            pageRendering = false,
+            pageNum = 1,
+        var pdfDoc = null,
+    function pdf(url) {
+
+    var imgData = null;
+
+    var pageNumTalbe = 1;
+    var pageTotal = '{{$totalPages}}';
+    var selectPageTable = document.getElementById('page-select-card');
+    var signature = '{{$signature}}';
+    $('.btn-default').hide();
+<script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600&display=swap" rel="stylesheet">
+<?php $position = [1 => 'สำนักงานปลัด', 2 => 'งานกิจการสภา', 3 => 'กองคลัง', 4 => 'กองช่าง', 5 => 'กองการศึกษา ศาสนาและวัฒนธรรม', 6 => 'ฝ่ายศูนย์รับเรื่องร้องเรียน-ร้องทุกข์', 7 => 'ฝ่ายเลือกตั้ง', 8 => 'ฝ่ายสปสช.', 9 => 'ศูนย์ข้อมูลข่าวสาร']; ?>
+@section('script')

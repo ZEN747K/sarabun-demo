@@ -80,7 +80,7 @@
         <div class="row">
             <div class="col-4">
                 <div class="input-group mb-3">
-                    <input type="text" id="inputSearch" class="form-control border-dark" placeholder="ค้นหา">
+                    <input type="text" id="inputSearch" class="form-control border-dark" placeholder="ค้นหาเอกสาร">
                     <button class="btn btn-outline-dark" type="button" id="search_btn">ค้นหา</button>
                     <a href="{{ route('book.show') }}" class="btn btn-outline-primary ms-2" id="btn-all-docs" style="white-space: nowrap;">
                         <span style="display:block; line-height: 1; font-size: 12px;">จำนวนเอกสารทั้งหมด</span>

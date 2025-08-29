@@ -119,7 +119,6 @@
         document.getElementById('prev').addEventListener('click', onPrevPage);
 
 
-        // let markEventListener = null;
         function countLineBreaks(text) {
             var lines = text.split('\n');
             return lines.length - 1;
@@ -255,7 +254,6 @@
                         removeMarkListener();
                         document.getElementById('manager-save').disabled = false;
 
-                        // Initialize 3-box layout (text → image → bottom) with drag/resize
                         markEventListener = function(){
                             var markCanvas = document.getElementById('mark-layer');
                             var markCtx = markCanvas.getContext('2d');
@@ -290,18 +288,17 @@
                                 if (has){ var ib = signatureCoordinates.imageBox; markCtx.save(); markCtx.strokeStyle='green'; markCtx.lineWidth=0.5; markCtx.strokeRect(ib.startX, ib.startY, ib.endX-ib.startX, ib.endY-ib.startY); markCtx.fillStyle='#fff'; markCtx.strokeStyle='#28a745'; markCtx.lineWidth=2; markCtx.fillRect(ib.endX-resizeHandleSize, ib.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.strokeRect(ib.endX-resizeHandleSize, ib.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.restore(); var iw=ib.endX-ib.startX, ih=ib.endY-ib.startY; if (signatureImgLoaded){ markCtx.drawImage(signatureImg, ib.startX, ib.startY, iw, ih); imgData={x:ib.startX,y:ib.startY,width:iw,height:ih}; } }
                                 // bottom box
                                 var bb = signatureCoordinates.bottomBox;
-                                // Light background to prevent underlying PDF text showing through
                                 markCtx.save();
                                 markCtx.globalAlpha = 0.9;
                                 markCtx.fillStyle = '#ffffff';
                                 markCtx.fillRect(bb.startX + 1, bb.startY + 1, (bb.endX - bb.startX) - 2, (bb.endY - bb.startY) - 2);
                                 markCtx.restore();
-                                // Border + resize handle (purple theme)
                                 markCtx.save(); markCtx.strokeStyle='purple'; markCtx.lineWidth=0.5; markCtx.strokeRect(bb.startX, bb.startY, bb.endX-bb.startX, bb.endY-bb.startY);
                                 markCtx.fillStyle='#fff'; markCtx.strokeStyle='#6f42c1'; markCtx.lineWidth=2; markCtx.fillRect(bb.endX-resizeHandleSize, bb.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.strokeRect(bb.endX-resizeHandleSize, bb.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.restore();
                                 // Draw bottom texts with multiline + dynamic scale to prevent overlap
                                 var bbW = (bb.endX - bb.startX);
                                 var bbH = (bb.endY - bb.startY);
+                                function wrapByWidth(ctx, text, maxWidth){ var words=(text||'').split(' '), lines=[], line=''; for(var i2=0;i2<words.length;i2++){ var test=line? (line+' '+words[i2]) : words[i2]; if(ctx.measureText(test).width<=maxWidth){ line=test; } else { if(line){ lines.push(line);} line=words[i2]; } } if(line){ lines.push(line);} return lines; }
                                 var items = [];
                                 checkedValues.forEach(function(el){
                                     if (el !== '4'){
@@ -321,7 +318,8 @@
                                 bs = Math.max(0.5, Math.min(2.5, bs));
                                 var lineIndex = 0;
                                 items.forEach(function(lines){
-                                    lines.forEach(function(line){
+                                    var wrappedAll=[]; lines.forEach(function(seg){ wrappedAll = wrappedAll.concat(wrapByWidth(markCtx, seg, bbW-8)); });
+                                    wrappedAll.forEach(function(line){
                                         drawTextHeaderSignature((15*bs).toFixed(1)+'px Sarabun', (bb.startX+bb.endX)/2, bb.startY + 25*bs + (20*lineIndex*bs), line);
                                         lineIndex++;
                                     });

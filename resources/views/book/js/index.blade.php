@@ -7,6 +7,17 @@
     const uploadArea = document.getElementById('upload-area');
     const pdfContainer = document.getElementById('pdf-container');
     const browseBtn = document.getElementById('browse-btn');
+    const clearBtn = document.getElementById('clear-btn');
+    let currentFileURL = null;
+
+    function setFileInput(file){
+        try{
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            fileInput.files = dt.files;
+        }catch(e){
+        }
+    }
 
     browseBtn.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', function(event) {
@@ -23,10 +34,25 @@
         }
     });
 
+    function clearPreview(){
+        try{ if(currentFileURL){ URL.revokeObjectURL(currentFileURL); } }catch(e){}
+        currentFileURL = null;
+        while (pdfContainer.firstChild) { pdfContainer.removeChild(pdfContainer.firstChild); }
+        pdfContainer.classList.add('hidden');
+        uploadArea.style.opacity = '1';
+        uploadArea.style.position = 'relative';
+        fileInput.value = '';
+    }
+
+    clearBtn.addEventListener('click', function(){ clearPreview(); });
+
     function handlePDF(file) {
+        clearPreview();
         uploadArea.style.opacity = '0';
         uploadArea.style.position = 'absolute';
         const fileURL = URL.createObjectURL(file);
+        currentFileURL = fileURL;
+        setFileInput(file);
         const loadingTask = pdfjsLib.getDocument(fileURL);
         loadingTask.promise.then(function(pdf) {
             for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
@@ -140,7 +166,7 @@
     });
     document.getElementById('formSubmit').addEventListener('keydown', function(event) {
         if (event.key === 'Enter' && event.target.tagName !== 'TEXTAREA') {
-            event.preventDefault(); // ป้องกัน submit
+            event.preventDefault();
         }
     });
 </script>

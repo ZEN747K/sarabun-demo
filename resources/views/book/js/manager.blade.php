@@ -3,6 +3,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+@include('book.js.constants')
+@include('book.js.shared-list')
 <script>
     $('.btn-default').hide();
     var signature = '{{$signature}}';
@@ -14,9 +16,9 @@
     // Preload signature image and track load state
     var signatureImg = new Image();
     var signatureImgLoaded = false;
-    signatureImg.onload = function(){ signatureImgLoaded = true; };
+    signatureImg.onload = function() { signatureImgLoaded = true; };
     signatureImg.src = signature;
-    // Global 3-box coordinates
+    // Global coordinates for triple-box signature (text, image, bottom)
     var signatureCoordinates = null;
 
     function pdf(url) {
@@ -91,7 +93,7 @@
             queueRenderPage(pageNum);
         }
 
-        selectPage.addEventListener('change', function() {
+        $('#page-select').off('change').on('change', function() {
             let selectedPage = parseInt(this.value);
             if (selectedPage && selectedPage >= 1 && selectedPage <= pdfDoc.numPages) {
                 pageNum = selectedPage;
@@ -101,6 +103,7 @@
 
         pdfjsLib.getDocument(url).promise.then(function(pdfDoc_) {
             pdfDoc = pdfDoc_;
+            $('#page-select').empty();
             for (let i = 1; i <= pdfDoc.numPages; i++) {
                 let option = document.createElement('option');
                 option.value = i;
@@ -113,8 +116,8 @@
         });
 
 
-        document.getElementById('next').addEventListener('click', onNextPage);
-        document.getElementById('prev').addEventListener('click', onPrevPage);
+        $('#next').off('click').on('click', function(e){ e.preventDefault(); onNextPage(); });
+        $('#prev').off('click').on('click', function(e){ e.preventDefault(); onPrevPage(); });
 
 
         // let markEventListener = null;
@@ -235,163 +238,234 @@
                 success: function(response) {
                     if (response.status) {
                         $('#exampleModal').modal('hide');
-                        setTimeout(() => {
-                            swal.close();
-                        }, 1500);
+                        setTimeout(() => { swal.close(); }, 1500);
                         resetMarking();
                         removeMarkListener();
                         document.getElementById('manager-save').disabled = false;
 
-                        // Initialize 3-box layout (text → image → bottom) and enable drag/resize
+                        // Advanced 3-box draggable/resizable layout (text, image, bottom)
                         markEventListener = function() {
                             var markCanvas = document.getElementById('mark-layer');
                             var markCtx = markCanvas.getContext('2d');
 
-                            if (!window.signatureImg) { window.signatureImg = new Image(); window.signatureImg.src = signature; }
-
-                            if (!window.signatureImgLoaded) {
-                                window.signatureImgLoaded = false;
-                                window.signatureImg.onload = function(){ window.signatureImgLoaded = true; };
-                            }
-
-                            if (!window.signatureCoordinates) { window.signatureCoordinates = null; }
-
+                            // Initialize default boxes once (centered)
                             if (!signatureCoordinates) {
-                                var defaultTextWidth = 220;
-                                var defaultTextHeight = 40;
-                                var defaultBottomBoxHeight = 80;
-                                var defaultImageWidth = 240;
-                                var defaultImageHeight = 130;
-                                var gap = 10;
-                                var startX = (markCanvas.width - defaultTextWidth) / 2;
-                                var totalH = defaultTextHeight + gap + defaultImageHeight + gap + defaultBottomBoxHeight + 20;
-                                var startY = (markCanvas.height - totalH) / 2;
-                                signatureCoordinates = {
-                                    textBox: { startX: startX, startY: startY, endX: startX + defaultTextWidth, endY: startY + defaultTextHeight, type: 'text' },
-                                    imageBox: { startX: startX - 13, startY: startY + defaultTextHeight + gap, endX: (startX - 13) + defaultImageWidth, endY: startY + defaultTextHeight + gap + defaultImageHeight, type: 'image' },
-                                    bottomBox: { startX: startX, startY: startY + defaultTextHeight + gap + defaultImageHeight + gap, endX: startX + defaultTextWidth, endY: startY + defaultTextHeight + gap + defaultImageHeight + gap + defaultBottomBoxHeight, type: 'bottom' }
-                                };
-                                $('#positionX').val(startX);
-                                $('#positionY').val(startY);
+                                var startX = (markCanvas.width - 220) / 2;
+                                var startY = (markCanvas.height - (40 + 10 + 130 + 10 + 80)) / 2;
+
+                                var textBox = { type: 'text', startX: startX, startY: startY, endX: startX + 220, endY: startY + 40 };
+                                var imageBox = { type: 'image', startX: startX - 10, startY: textBox.endY + 10, endX: startX - 10 + 240, endY: textBox.endY + 10 + 130 };
+                                var bottomBox = { type: 'bottom', startX: startX, startY: imageBox.endY + 10, endX: startX + 220, endY: imageBox.endY + 10 + 80 };
+                                signatureCoordinates = { textBox: textBox, bottomBox: bottomBox, imageBox: imageBox };
+
+                                // Pre-fill hidden inputs from text box
+                                $('#positionX').val(textBox.startX);
+                                $('#positionY').val(textBox.startY);
                                 $('#positionPages').val(1);
                             }
 
-                            var resizeHandleSize = 16;
-                            function redrawSignatureBoxes(){
-                                markCtx.clearRect(0,0,markCanvas.width, markCanvas.height);
-                                var text = $('#modal-text').val();
-                                var checkedValues = $('input[type="checkbox"]:checked').map(function(){ return $(this).val(); }).get();
-                                // text box
+                            function redrawSignatureBoxes() {
+                                markCtx.clearRect(0, 0, markCanvas.width, markCanvas.height);
+                                var resizeHandleSize = 16;
+
                                 var textBox = signatureCoordinates.textBox;
-                                markCtx.save(); markCtx.strokeStyle='blue'; markCtx.lineWidth=0.5; markCtx.strokeRect(textBox.startX, textBox.startY, textBox.endX-textBox.startX, textBox.endY-textBox.startY);
-                                markCtx.fillStyle='#fff'; markCtx.strokeStyle='#007bff'; markCtx.lineWidth=2; markCtx.fillRect(textBox.endX-resizeHandleSize, textBox.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.strokeRect(textBox.endX-resizeHandleSize, textBox.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.restore();
-                                var textScale = Math.min((textBox.endX-textBox.startX)/220,(textBox.endY-textBox.startY)/40); textScale = Math.max(0.5, Math.min(2.5, textScale));
-                                drawTextHeaderSignature((15*textScale).toFixed(1)+'px Sarabun', (textBox.startX+textBox.endX)/2, textBox.startY+25*textScale, text);
-                                // image box
+                                // Bounding + handle + text (centered per line)
+                                markCtx.beginPath();
+                                markCtx.rect(textBox.startX, textBox.startY, textBox.endX - textBox.startX, textBox.endY - textBox.startY);
+                                markCtx.lineWidth = 0.5;
+                                markCtx.strokeStyle = '#3b82f6';
+                                markCtx.stroke();
+                                markCtx.save();
+                                markCtx.fillStyle = '#fff';
+                                markCtx.strokeStyle = '#3b82f6';
+                                markCtx.lineWidth = 2;
+                                markCtx.fillRect(textBox.endX - resizeHandleSize, textBox.endY - resizeHandleSize, resizeHandleSize, resizeHandleSize);
+                                markCtx.strokeRect(textBox.endX - resizeHandleSize, textBox.endY - resizeHandleSize, resizeHandleSize, resizeHandleSize);
+                                markCtx.restore();
+                                // Draw header text
+                                var text = $('#modal-text').val() || '';
+                                var lines = text.split('\n');
+                                markCtx.font = '15px Sarabun';
+                                markCtx.fillStyle = 'blue';
+                                for (var i = 0; i < lines.length; i++) {
+                                    var w = markCtx.measureText(lines[i]).width;
+                                    var cx = (textBox.startX + textBox.endX) / 2 - (w / 2);
+                                    markCtx.fillText(lines[i], cx, textBox.startY + 20 + (i * 20));
+                                }
+
+                                var checkedValues = $('input[type="checkbox"]:checked').map(function() { return $(this).val(); }).get();
                                 var hasImage = checkedValues.includes('4');
+
                                 if (hasImage) {
                                     var imageBox = signatureCoordinates.imageBox;
-                                    markCtx.save(); markCtx.strokeStyle='green'; markCtx.lineWidth=0.5; markCtx.strokeRect(imageBox.startX, imageBox.startY, imageBox.endX-imageBox.startX, imageBox.endY-imageBox.startY);
-                                    markCtx.fillStyle='#fff'; markCtx.strokeStyle='#28a745'; markCtx.lineWidth=2; markCtx.fillRect(imageBox.endX-resizeHandleSize, imageBox.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.strokeRect(imageBox.endX-resizeHandleSize, imageBox.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.restore();
-                                    var imgW=imageBox.endX-imageBox.startX, imgH=imageBox.endY-imageBox.startY; if (window.signatureImgLoaded){ markCtx.drawImage(window.signatureImg, imageBox.startX, imageBox.startY, imgW, imgH); imgData={x:imageBox.startX,y:imageBox.startY,width:imgW,height:imgH}; }
+                                    markCtx.beginPath();
+                                    markCtx.rect(imageBox.startX, imageBox.startY, imageBox.endX - imageBox.startX, imageBox.endY - imageBox.startY);
+                                    markCtx.lineWidth = 0.5;
+                                    markCtx.strokeStyle = '#22c55e';
+                                    markCtx.stroke();
+                                    markCtx.save();
+                                    markCtx.fillStyle = '#fff';
+                                    markCtx.strokeStyle = '#22c55e';
+                                    markCtx.lineWidth = 2;
+                                    markCtx.fillRect(imageBox.endX - resizeHandleSize, imageBox.endY - resizeHandleSize, resizeHandleSize, resizeHandleSize);
+                                    markCtx.strokeRect(imageBox.endX - resizeHandleSize, imageBox.endY - resizeHandleSize, resizeHandleSize, resizeHandleSize);
+                                    markCtx.restore();
+                                    // Draw signature image if loaded
+                                    if (signatureImgLoaded) {
+                                        var iw = imageBox.endX - imageBox.startX;
+                                        var ih = imageBox.endY - imageBox.startY;
+                                        markCtx.drawImage(signatureImg, imageBox.startX, imageBox.startY, iw, ih);
+                                        imgData = { x: imageBox.startX, y: imageBox.startY, width: iw, height: ih };
+                                    }
                                 }
-                                // bottom box
+
                                 var bottomBox = signatureCoordinates.bottomBox;
-                                markCtx.save(); markCtx.strokeStyle='purple'; markCtx.lineWidth=0.5; markCtx.strokeRect(bottomBox.startX, bottomBox.startY, bottomBox.endX-bottomBox.startX, bottomBox.endY-bottomBox.startY);
-                                markCtx.fillStyle='#fff'; markCtx.strokeStyle='#6f42c1'; markCtx.lineWidth=2; markCtx.fillRect(bottomBox.endX-resizeHandleSize, bottomBox.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.strokeRect(bottomBox.endX-resizeHandleSize, bottomBox.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.restore();
-                                var bottomScale = Math.min((bottomBox.endX-bottomBox.startX)/220,(bottomBox.endY-bottomBox.startY)/80); bottomScale = Math.max(0.5, Math.min(2.5, bottomScale));
-                                var i=0; checkedValues.forEach(function(el){ if (el!='4'){ var t=''; switch(el){ case '1': t=`({{$users->fullname}})`; break; case '2': t=`{{$permission_data->permission_name}}`; break; case '3': t=`{{convertDateToThai(date("Y-m-d"))}}`; break; } drawTextHeaderSignature((15*bottomScale).toFixed(1)+'px Sarabun', (bottomBox.startX+bottomBox.endX)/2, bottomBox.startY + 25*bottomScale + (20*i*bottomScale), t); i++; } });
+                                markCtx.beginPath();
+                                markCtx.rect(bottomBox.startX, bottomBox.startY, bottomBox.endX - bottomBox.startX, bottomBox.endY - bottomBox.startY);
+                                markCtx.lineWidth = 0.5;
+                                markCtx.strokeStyle = '#a855f7';
+                                markCtx.stroke();
+                                markCtx.save();
+                                markCtx.fillStyle = '#fff';
+                                markCtx.strokeStyle = '#a855f7';
+                                markCtx.lineWidth = 2;
+                                markCtx.fillRect(bottomBox.endX - resizeHandleSize, bottomBox.endY - resizeHandleSize, resizeHandleSize, resizeHandleSize);
+                                markCtx.strokeRect(bottomBox.endX - resizeHandleSize, bottomBox.endY - resizeHandleSize, resizeHandleSize, resizeHandleSize);
+                                markCtx.restore();
+
+                                // Draw bottom texts based on checked values (except image = 4)
+                                function wrapByWidth(ctx, text, maxWidth){
+                                    var words=(text||'').split(' '), lines=[], line='';
+                                    for(var i=0;i<words.length;i++){ var test=line? (line+' '+words[i]) : words[i]; if(ctx.measureText(test).width<=maxWidth){ line=test; } else { if(line){ lines.push(line); } line=words[i]; } }
+                                    if(line){ lines.push(line); } return lines;
+                                }
+                                var i2 = 0;
+                                var boxW = (bottomBox.endX - bottomBox.startX) - 8;
+                                var bottomScale = Math.min((bottomBox.endX - bottomBox.startX)/213, (bottomBox.endY - bottomBox.startY)/80); bottomScale = Math.max(0.5, Math.min(2.5, bottomScale));
+                                checkedValues.forEach(function(v){
+                                    if(v!=='4'){
+                                        var t='';
+                                        switch(v){ case '1': t=`({{$users->fullname}})`; break; case '2': t=`{{$permission_data->permission_name}}`; break; case '3': t=`{{convertDateToThai(date("Y-m-d"))}}`; break; }
+                                        if(!t) return;
+                                        markCtx.font = (15*bottomScale).toFixed(1)+'px Sarabun';
+                                        markCtx.fillStyle='blue';
+                                        var lines=[]; t.split('\n').forEach(function(seg){ lines=lines.concat(wrapByWidth(markCtx, seg, boxW)); });
+                                        lines.forEach(function(line){ var w=markCtx.measureText(line).width; var cx=(bottomBox.startX+bottomBox.endX)/2 - (w/2); markCtx.fillText(line, cx, bottomBox.startY + 25*bottomScale + (20*i2*bottomScale)); i2++; });
+                                    }
+                                });
                             }
 
-                            // Drag/resize handlers
-                            var isDragging=false, isResizing=false, activeBox=null, dragOffsetX=0, dragOffsetY=0;
-                            function isOnResizeHandle(x,y,box){ return x>=box.endX-16 && x<=box.endX && y>=box.endY-16 && y<=box.endY; }
-                            function isInBox(x,y,box){ return x>=box.startX && x<=box.endX && y>=box.startY && y<=box.endY; }
-                            function getActiveBox(x,y){ var checked=$('input[type="checkbox"]:checked').map(function(){return $(this).val();}).get(); var hasImg=checked.includes('4'); if (isInBox(x,y, signatureCoordinates.bottomBox)) return signatureCoordinates.bottomBox; if (hasImg && isInBox(x,y, signatureCoordinates.imageBox)) return signatureCoordinates.imageBox; if (isInBox(x,y, signatureCoordinates.textBox)) return signatureCoordinates.textBox; return null; }
-                            markCanvas.addEventListener('mousemove', function(e){ var r=markCanvas.getBoundingClientRect(); var x=e.clientX-r.left; var y=e.clientY-r.top; var checked=$('input[type="checkbox"]:checked').map(function(){return $(this).val();}).get(); var hasImg=checked.includes('4'); if (isOnResizeHandle(x,y, signatureCoordinates.textBox) || isOnResizeHandle(x,y, signatureCoordinates.bottomBox) || (hasImg && isOnResizeHandle(x,y, signatureCoordinates.imageBox))) markCanvas.style.cursor='se-resize'; else if (getActiveBox(x,y)) markCanvas.style.cursor='move'; else markCanvas.style.cursor='default'; });
-                            markCanvas.onmousedown=function(e){ var r=markCanvas.getBoundingClientRect(); var x=e.clientX-r.left; var y=e.clientY-r.top; var checked=$('input[type="checkbox"]:checked').map(function(){return $(this).val();}).get(); var hasImg=checked.includes('4'); if (isOnResizeHandle(x,y, signatureCoordinates.textBox)) { isResizing=true; activeBox=signatureCoordinates.textBox; e.preventDefault(); window.addEventListener('mousemove', onResizeMove); window.addEventListener('mouseup', onResizeEnd);} else if (isOnResizeHandle(x,y, signatureCoordinates.bottomBox)) { isResizing=true; activeBox=signatureCoordinates.bottomBox; e.preventDefault(); window.addEventListener('mousemove', onResizeMove); window.addEventListener('mouseup', onResizeEnd);} else if (hasImg && isOnResizeHandle(x,y, signatureCoordinates.imageBox)) { isResizing=true; activeBox=signatureCoordinates.imageBox; e.preventDefault(); window.addEventListener('mousemove', onResizeMove); window.addEventListener('mouseup', onResizeEnd);} else { activeBox=getActiveBox(x,y); if (activeBox){ isDragging=true; dragOffsetX=x-activeBox.startX; dragOffsetY=y-activeBox.startY; e.preventDefault(); window.addEventListener('mousemove', onDragMove); window.addEventListener('mouseup', onDragEnd);} }
-                            };
-                            function onDragMove(e){ if(!isDragging||!activeBox) return; var r=markCanvas.getBoundingClientRect(); var x=e.clientX-r.left; var y=e.clientY-r.top; var w=activeBox.endX-activeBox.startX; var h=activeBox.endY-activeBox.startY; var nsx=Math.max(0, Math.min(markCanvas.width-w, x-dragOffsetX)); var nsy=Math.max(0, Math.min(markCanvas.height-h, y-dragOffsetY)); activeBox.startX=nsx; activeBox.startY=nsy; activeBox.endX=nsx+w; activeBox.endY=nsy+h; if (activeBox.type==='text'){ $('#positionX').val(nsx); $('#positionY').val(nsy);} redrawSignatureBoxes(); }
-                            function onDragEnd(){ isDragging=false; activeBox=null; window.removeEventListener('mousemove', onDragMove); window.removeEventListener('mouseup', onDragEnd); }
-                            function onResizeMove(e){ if(!isResizing||!activeBox) return; var r=markCanvas.getBoundingClientRect(); var x=e.clientX-r.left; var y=e.clientY-r.top; var minW=40, minH=30; activeBox.endX=Math.min(markCanvas.width, Math.max(activeBox.startX+minW, x)); activeBox.endY=Math.min(markCanvas.height, Math.max(activeBox.startY+minH, y)); redrawSignatureBoxes(); }
-                            function onResizeEnd(){ isResizing=false; activeBox=null; window.removeEventListener('mousemove', onResizeMove); window.removeEventListener('mouseup', onResizeEnd); }
+                            function isOnResizeHandle(mouseX, mouseY, box) {
+                                var s = 16;
+                                return box && mouseX >= box.endX - s && mouseX <= box.endX && mouseY >= box.endY - s && mouseY <= box.endY;
+                            }
+                            function isInBox(mouseX, mouseY, box) {
+                                return box && mouseX >= box.startX && mouseX <= box.endX && mouseY >= box.startY && mouseY <= box.endY;
+                            }
+                            function getActiveBox(mouseX, mouseY) {
+                                var checkedValues = $('input[type="checkbox"]:checked').map(function () { return $(this).val(); }).get();
+                                var hasImage = checkedValues.includes('4');
+                                if (isInBox(mouseX, mouseY, signatureCoordinates.bottomBox)) return signatureCoordinates.bottomBox;
+                                if (hasImage && isInBox(mouseX, mouseY, signatureCoordinates.imageBox)) return signatureCoordinates.imageBox;
+                                if (isInBox(mouseX, mouseY, signatureCoordinates.textBox)) return signatureCoordinates.textBox;
+                                return null;
+                            }
 
+                            var isDragging = false, isResizing = false, activeBox = null, dragOffsetX = 0, dragOffsetY = 0;
+
+                            markCanvas.addEventListener('mousemove', function(e){
+                                var rect = markCanvas.getBoundingClientRect();
+                                var mouseX = e.clientX - rect.left, mouseY = e.clientY - rect.top;
+                                var checkedValues = $('input[type="checkbox"]:checked').map(function () { return $(this).val(); }).get();
+                                var hasImage = checkedValues.includes('4');
+                                if (isOnResizeHandle(mouseX, mouseY, signatureCoordinates.textBox) ||
+                                    isOnResizeHandle(mouseX, mouseY, signatureCoordinates.bottomBox) ||
+                                    (hasImage && isOnResizeHandle(mouseX, mouseY, signatureCoordinates.imageBox))) {
+                                    markCanvas.style.cursor = 'se-resize';
+                                } else if (getActiveBox(mouseX, mouseY)) {
+                                    markCanvas.style.cursor = 'move';
+                                } else {
+                                    markCanvas.style.cursor = 'default';
+                                }
+                            });
+
+                            markCanvas.onmousedown = function(e){
+                                var rect = markCanvas.getBoundingClientRect();
+                                var mouseX = e.clientX - rect.left, mouseY = e.clientY - rect.top;
+                                var checkedValues = $('input[type="checkbox"]:checked').map(function () { return $(this).val(); }).get();
+                                var hasImage = checkedValues.includes('4');
+                                if (isOnResizeHandle(mouseX, mouseY, signatureCoordinates.textBox)) { isResizing = true; activeBox = signatureCoordinates.textBox; }
+                                else if (isOnResizeHandle(mouseX, mouseY, signatureCoordinates.bottomBox)) { isResizing = true; activeBox = signatureCoordinates.bottomBox; }
+                                else if (hasImage && isOnResizeHandle(mouseX, mouseY, signatureCoordinates.imageBox)) { isResizing = true; activeBox = signatureCoordinates.imageBox; }
+                                else { activeBox = getActiveBox(mouseX, mouseY); if (activeBox) { isDragging = true; dragOffsetX = mouseX - activeBox.startX; dragOffsetY = mouseY - activeBox.startY; } }
+                                if (isDragging) { window.addEventListener('mousemove', onDragMove); window.addEventListener('mouseup', onDragEnd); }
+                                if (isResizing) { window.addEventListener('mousemove', onResizeMove); window.addEventListener('mouseup', onResizeEnd); }
+                            };
+
+                            function onDragMove(e){
+                                if (!isDragging || !activeBox) return;
+                                var rect = markCanvas.getBoundingClientRect();
+                                var mouseX = e.clientX - rect.left, mouseY = e.clientY - rect.top;
+                                var boxW = activeBox.endX - activeBox.startX, boxH = activeBox.endY - activeBox.startY;
+                                var nsx = Math.max(0, Math.min(markCanvas.width - boxW, mouseX - dragOffsetX));
+                                var nsy = Math.max(0, Math.min(markCanvas.height - boxH, mouseY - dragOffsetY));
+                                activeBox.startX = nsx; activeBox.startY = nsy; activeBox.endX = nsx + boxW; activeBox.endY = nsy + boxH;
+                                if (activeBox.type === 'text') { $('#positionX').val(nsx); $('#positionY').val(nsy); }
+                                redrawSignatureBoxes();
+                            }
+                            function onResizeMove(e){
+                                if (!isResizing || !activeBox) return;
+                                var rect = markCanvas.getBoundingClientRect();
+                                var mouseX = e.clientX - rect.left, mouseY = e.clientY - rect.top;
+                                var minW = 40, minH = 30;
+                                var nex = Math.min(markCanvas.width, Math.max(activeBox.startX + minW, mouseX));
+                                var ney = Math.min(markCanvas.height, Math.max(activeBox.startY + minH, mouseY));
+                                activeBox.endX = nex; activeBox.endY = ney;
+                                redrawSignatureBoxes();
+                            }
+                            function onDragEnd(){ isDragging = false; activeBox = null; window.removeEventListener('mousemove', onDragMove); window.removeEventListener('mouseup', onDragEnd); }
+                            function onResizeEnd(){ isResizing = false; activeBox = null; window.removeEventListener('mousemove', onResizeMove); window.removeEventListener('mouseup', onResizeEnd); }
+
+                            // First draw
                             redrawSignatureBoxes();
                         };
 
-                        var markCanvas = document.getElementById('mark-layer');
-                        try { markEventListener(); } catch (e) {}
-                        markCanvas.addEventListener('click', markEventListener);
+                        // Initialize and attach
+                        try { markEventListener(); } catch(err) {}
+                        var markCanvasMain = document.getElementById('mark-layer');
+                        markCanvasMain.addEventListener('click', markEventListener);
 
-                        markEventListenerInsert = function(e) {
+                        // Insert page variant with same behavior
+                        markEventListenerInsert = function(){
                             var markCanvas = document.getElementById('mark-layer-insert');
                             var markCtx = markCanvas.getContext('2d');
-                            var rect = markCanvas.getBoundingClientRect();
-                            var startX = (e.clientX - rect.left);
-                            var startY = (e.clientY - rect.top);
-
-                            var endX = startX + 213;
-                            var endY = startY + 115;
-
-                            markCoordinates = {
-                                startX,
-                                startY,
-                                endX,
-                                endY
-                            };
-                            $('#positionX').val(startX);
-                            $('#positionY').val(startY);
+                            // Reuse same structure but set page to 2
+                            if (!signatureCoordinates) { markEventListener(); return; }
                             $('#positionPages').val(2);
-
-                            var text = $('#modal-text').val();
-                            var lineBreakCount = countLineBreaks(text);
-                            var checkedValues = $('input[type="checkbox"]:checked').map(function() {
-                                return $(this).val();
-                            }).get();
-                            drawMarkSignatureInsert(startX - 40, startY + (20 * lineBreakCount), endX, endY, checkedValues);
-                            drawTextHeaderSignatureInsert('15px Sarabun', startX, startY, text);
-
-                            var i = 0;
-                            var checkbox_text = '';
-                            var checkbox_x = 0;
-                            var plus_y = 20;
-                            checkedValues.forEach(element => {
-                                if (element == 4) {
-                                    plus_y = 160;
-                                }
-                            });
-
-                            checkedValues.forEach(element => {
-                                switch (element) {
-                                    case '1':
-                                        checkbox_text = `({{$users->fullname}})`;
-                                        break;
-                                    case '2':
-                                        checkbox_text = `{{$permission_data->permission_name}}`;
-                                        break;
-                                    case '3':
-                                        checkbox_text = `{{convertDateToThai(date("Y-m-d"))}}`;
-                                        break;
-                                }
-                                var lines = checkbox_text.split('\n');
-                                if (element != 4) {
-                                    drawTextHeaderSignatureInsert('15px Sarabun', startX, (startY + plus_y + (20 * lineBreakCount)) + (20 * i), checkbox_text);
-                                }
-                                if (lines.length > 1) {
-                                    var stop = 0;
-                                    lines.forEach(element => {
-                                        if (stop != 0) {
-                                            i++;
-                                        }
-                                        stop++;
-                                    });
-                                }
-                                i++;
-                            });
+                            // Simple redraw reuse from main
+                            // Draw boxes at same coordinates on insert canvas
+                            markCtx.clearRect(0,0,markCanvas.width, markCanvas.height);
+                            var tb = signatureCoordinates.textBox, ib = signatureCoordinates.imageBox, bb = signatureCoordinates.bottomBox;
+                            var rh = 16;
+                            // text (blue)
+                            markCtx.beginPath(); markCtx.rect(tb.startX, tb.startY, tb.endX-tb.startX, tb.endY-tb.startY); markCtx.strokeStyle='#3b82f6'; markCtx.lineWidth=0.5; markCtx.stroke();
+                            markCtx.save(); markCtx.fillStyle='#fff'; markCtx.strokeStyle='#3b82f6'; markCtx.lineWidth=2; markCtx.fillRect(tb.endX-rh, tb.endY-rh, rh, rh); markCtx.strokeRect(tb.endX-rh, tb.endY-rh, rh, rh); markCtx.restore();
+                            var text = $('#modal-text').val()||''; var lines = text.split('\n'); markCtx.font='15px Sarabun'; markCtx.fillStyle='blue';
+                            for (var i=0;i<lines.length;i++){ var w=markCtx.measureText(lines[i]).width; var cx=(tb.startX+tb.endX)/2 - (w/2); markCtx.fillText(lines[i], cx, tb.startY+20+(i*20)); }
+                            // image (green)
+                            var checkedValues = $('input[type="checkbox"]:checked').map(function(){return $(this).val();}).get();
+                            if (checkedValues.includes('4')){
+                                markCtx.beginPath(); markCtx.rect(ib.startX, ib.startY, ib.endX-ib.startX, ib.endY-ib.startY); markCtx.strokeStyle='#22c55e'; markCtx.lineWidth=0.5; markCtx.stroke();
+                                markCtx.save(); markCtx.fillStyle='#fff'; markCtx.strokeStyle='#22c55e'; markCtx.lineWidth=2; markCtx.fillRect(ib.endX-rh, ib.endY-rh, rh, rh); markCtx.strokeRect(ib.endX-rh, ib.endY-rh, rh, rh); markCtx.restore();
+                                if (signatureImgLoaded){ var iw=ib.endX-ib.startX, ih=ib.endY-ib.startY; markCtx.drawImage(signatureImg, ib.startX, ib.startY, iw, ih); imgData={x:ib.startX,y:ib.startY,width:iw,height:ih}; }
+                            }
+                            // bottom (purple)
+                            markCtx.beginPath(); markCtx.rect(bb.startX, bb.startY, bb.endX-bb.startX, bb.endY-bb.startY); markCtx.strokeStyle='#a855f7'; markCtx.lineWidth=0.5; markCtx.stroke();
+                            markCtx.save(); markCtx.fillStyle='#fff'; markCtx.strokeStyle='#a855f7'; markCtx.lineWidth=2; markCtx.fillRect(bb.endX-rh, bb.endY-rh, rh, rh); markCtx.strokeRect(bb.endX-rh, bb.endY-rh, rh, rh); markCtx.restore();
+                            var i2=0; checkedValues.forEach(function(v){ if(v!=='4'){ var t=''; switch(v){case '1': t=`({{$users->fullname}})`; break; case '2': t=`{{$permission_data->permission_name}}`; break; case '3': t=`{{convertDateToThai(date("Y-m-d"))}}`; break;} if(!t)return; var ls=t.split('\n'); ls.forEach(function(line){ var w=markCtx.measureText(line).width; var cx=(bb.startX+bb.endX)/2 - (w/2); markCtx.fillText(line, cx, bb.startY + 25 + (20*i2)); i2++; }); } });
                         };
-
-                        var markCanvas = document.getElementById('mark-layer-insert');
-                        markCanvas.addEventListener('click', markEventListenerInsert);
+                        var markCanvasInsert = document.getElementById('mark-layer-insert');
+                        markCanvasInsert.addEventListener('click', markEventListenerInsert);
                     } else {
                         $('#exampleModal').modal('hide');
                         Swal.fire("", response.message, "error");
@@ -568,6 +642,30 @@
         var checkedValues = $('input[type="checkbox"]:checked').map(function() {
             return $(this).val();
         }).get();
+        // Compute sizes from 3-box layout if available; fallback to single box
+        var boxW = 213, boxH = 40; // defaults
+        var imageBox = null;
+        var bottomBox = null;
+        try {
+            if (signatureCoordinates && signatureCoordinates.textBox) {
+                var tb = signatureCoordinates.textBox;
+                boxW = (tb.endX - tb.startX);
+                boxH = (tb.endY - tb.startY);
+                if (checkedValues.includes('4') && signatureCoordinates.imageBox) {
+                    var ib = signatureCoordinates.imageBox;
+                    imageBox = { startX: ib.startX, startY: ib.startY, width: (ib.endX - ib.startX), height: (ib.endY - ib.startY) };
+                }
+                if (signatureCoordinates.bottomBox) {
+                    var bb = signatureCoordinates.bottomBox;
+                    bottomBox = { startX: bb.startX, startY: bb.startY, width: (bb.endX - bb.startX), height: (bb.endY - bb.startY) };
+                }
+            } else if (typeof markCoordinates !== 'undefined' && markCoordinates) {
+                var w = (markCoordinates.endX - markCoordinates.startX);
+                var h = (markCoordinates.endY - markCoordinates.startY);
+                if (!isNaN(w) && w > 0) boxW = w;
+                if (!isNaN(h) && h > 0) boxH = h;
+            }
+        } catch (err) { /* keep defaults */ }
         if (id != '' && positionX != '' && positionY != '') {
             Swal.fire({
                 title: "ยืนยันการลงลายเซ็น",
@@ -588,7 +686,15 @@
                             positionPages: positionPages,
                             status: 7,
                             text: text,
-                            checkedValues: checkedValues
+                            checkedValues: checkedValues,
+                            // Provide size hints expected by backend PDF generator
+                            width: boxW,
+                            height: boxH,
+                            // Include image and bottom boxes (if any)
+                            imageBox: imageBox,
+                            bottomBox: bottomBox,
+                            // Pass along position_id if present (safer for cross-position flows)
+                            position_id: $('#position_id').val() || undefined
                         },
                         dataType: "json",
                         headers: {

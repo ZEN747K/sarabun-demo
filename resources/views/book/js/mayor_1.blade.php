@@ -91,7 +91,7 @@
             queueRenderPage(pageNum);
         }
 
-        selectPage.addEventListener('change', function() {
+        $('#page-select').off('change').on('change', function() {
             let selectedPage = parseInt(this.value);
             if (selectedPage && selectedPage >= 1 && selectedPage <= pdfDoc.numPages) {
                 pageNum = selectedPage;
@@ -101,6 +101,7 @@
 
         pdfjsLib.getDocument(url).promise.then(function(pdfDoc_) {
             pdfDoc = pdfDoc_;
+            $('#page-select').empty();
             for (let i = 1; i <= pdfDoc.numPages; i++) {
                 let option = document.createElement('option');
                 option.value = i;
@@ -113,8 +114,8 @@
         });
 
 
-        document.getElementById('next').addEventListener('click', onNextPage);
-        document.getElementById('prev').addEventListener('click', onPrevPage);
+        $('#next').off('click').on('click', function(e){ e.preventDefault(); onNextPage(); });
+        $('#prev').off('click').on('click', function(e){ e.preventDefault(); onPrevPage(); });
 
 
         let markEventListener = null;
@@ -279,7 +280,9 @@
                                 var hasImg = checkedValues.includes('4');
                                 if (hasImg){ var ib = signatureCoordinates.imageBox; markCtx.save(); markCtx.strokeStyle='green'; markCtx.lineWidth=0.5; markCtx.strokeRect(ib.startX, ib.startY, ib.endX-ib.startX, ib.endY-ib.startY); markCtx.fillStyle='#fff'; markCtx.strokeStyle='#28a745'; markCtx.lineWidth=2; markCtx.fillRect(ib.endX-resizeHandleSize, ib.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.strokeRect(ib.endX-resizeHandleSize, ib.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.restore(); var iw=ib.endX-ib.startX, ih=ib.endY-ib.startY; if (signatureImgLoaded){ markCtx.drawImage(signatureImg, ib.startX, ib.startY, iw, ih); imgData={x:ib.startX,y:ib.startY,width:iw,height:ih}; } }
                                 // bottom box
-                                var bb = signatureCoordinates.bottomBox; markCtx.save(); markCtx.strokeStyle='purple'; markCtx.lineWidth=0.5; markCtx.strokeRect(bb.startX, bb.startY, bb.endX-bb.startX, bb.endY-bb.startY); markCtx.fillStyle='#fff'; markCtx.strokeStyle='#6f42c1'; markCtx.lineWidth=2; markCtx.fillRect(bb.endX-resizeHandleSize, bb.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.strokeRect(bb.endX-resizeHandleSize, bb.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.restore(); var bs=Math.min((bb.endX-bb.startX)/220,(bb.endY-bb.startY)/80); bs=Math.max(0.5, Math.min(2.5,bs)); var i=0; checkedValues.forEach(function(el){ if (el!='4'){ var t=''; switch(el){ case '1': t=`({{$users->fullname}})`; break; case '2': t=`{{$permission_data->permission_name}}`; break; case '3': t=`{{convertDateToThai(date("Y-m-d"))}}`; break; } drawTextHeaderSignature((15*bs).toFixed(1)+'px Sarabun', (bb.startX+bb.endX)/2, bb.startY+25*bs + (20*i*bs), t); i++; } });
+                                var bb = signatureCoordinates.bottomBox; markCtx.save(); markCtx.strokeStyle='purple'; markCtx.lineWidth=0.5; markCtx.strokeRect(bb.startX, bb.startY, bb.endX-bb.startX, bb.endY-bb.startY); markCtx.fillStyle='#fff'; markCtx.strokeStyle='#6f42c1'; markCtx.lineWidth=2; markCtx.fillRect(bb.endX-resizeHandleSize, bb.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.strokeRect(bb.endX-resizeHandleSize, bb.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.restore();
+                                function wrapByWidth(ctx, text, maxWidth){ var words=(text||'').split(' '), lines=[], line=''; for(var i2=0;i2<words.length;i2++){ var test=line? (line+' '+words[i2]) : words[i2]; if(ctx.measureText(test).width<=maxWidth){ line=test; } else { if(line){ lines.push(line);} line=words[i2]; } } if(line){ lines.push(line);} return lines; }
+                                var bs=Math.min((bb.endX-bb.startX)/220,(bb.endY-bb.startY)/80); bs=Math.max(0.5, Math.min(2.5,bs)); var i=0; var boxW=(bb.endX-bb.startX)-8; checkedValues.forEach(function(el){ if (el!='4'){ var t=''; switch(el){ case '1': t=`({{$users->fullname}})`; break; case '2': t=`{{$permission_data->permission_name}}`; break; case '3': t=`{{convertDateToThai(date("Y-m-d"))}}`; break; } markCtx.font=(15*bs).toFixed(1)+'px Sarabun'; markCtx.fillStyle='blue'; var lines=[]; t.split('\n').forEach(function(seg){ lines=lines.concat(wrapByWidth(markCtx, seg, boxW)); }); lines.forEach(function(line){ var w=markCtx.measureText(line).width; var cx=(bb.startX+bb.endX)/2 - (w/2); markCtx.fillText(line, cx, bb.startY+25*bs + (20*i*bs)); i++; }); } });
                             }
                             var isDragging=false, isResizing=false, activeBox=null, dragOffsetX=0, dragOffsetY=0;
                             function onResizeHandle(x,y,b){ return x>=b.endX-16 && x<=b.endX && y>=b.endY-16 && y<=b.endY; }

@@ -12,6 +12,14 @@
 
     var imgData = null;
     var lastOpen = null;
+    // Configure pdf.js worker to MATCH the loaded API version to avoid version mismatch
+    try {
+        if (window.pdfjsLib && pdfjsLib.GlobalWorkerOptions) {
+            var _v = (pdfjsLib.version || '').trim();
+            if (!_v) { _v = '2.10.377'; } // sensible default matching typical bundle
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/' + _v + '/pdf.worker.min.js';
+        }
+    } catch (e) {}
     // Preload signature image for 3-box drawing
     var signatureImg = new Image();
     var signatureImgLoaded = false;
@@ -92,7 +100,7 @@
             queueRenderPage(pageNum);
         }
 
-        selectPage.addEventListener('change', function() {
+        $('#page-select').off('change').on('change', function() {
             let selectedPage = parseInt(this.value);
             if (selectedPage && selectedPage >= 1 && selectedPage <= pdfDoc.numPages) {
                 pageNum = selectedPage;
@@ -102,6 +110,7 @@
 
         pdfjsLib.getDocument(url).promise.then(function(pdfDoc_) {
             pdfDoc = pdfDoc_;
+            $('#page-select').empty();
             for (let i = 1; i <= pdfDoc.numPages; i++) {
                 let option = document.createElement('option');
                 option.value = i;
@@ -114,8 +123,8 @@
         });
 
 
-        document.getElementById('next').addEventListener('click', onNextPage);
-        document.getElementById('prev').addEventListener('click', onPrevPage);
+        $('#next').off('click').on('click', function(e){ e.preventDefault(); onNextPage(); });
+        $('#prev').off('click').on('click', function(e){ e.preventDefault(); onPrevPage(); });
 
 
         // let markEventListener = null;
@@ -291,8 +300,9 @@
                                 var bottomBox = signatureCoordinates.bottomBox;
                                 markCtx.save(); markCtx.strokeStyle='purple'; markCtx.lineWidth=0.5; markCtx.strokeRect(bottomBox.startX, bottomBox.startY, bottomBox.endX-bottomBox.startX, bottomBox.endY-bottomBox.startY);
                                 markCtx.fillStyle='#fff'; markCtx.strokeStyle='#6f42c1'; markCtx.lineWidth=2; markCtx.fillRect(bottomBox.endX-resizeHandleSize, bottomBox.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.strokeRect(bottomBox.endX-resizeHandleSize, bottomBox.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.restore();
+                                function wrapByWidth(ctx, text, maxWidth){ var words=(text||'').split(' '), lines=[], line=''; for(var i2=0;i2<words.length;i2++){ var test=line? (line+' '+words[i2]) : words[i2]; if(ctx.measureText(test).width<=maxWidth){ line=test; } else { if(line){ lines.push(line);} line=words[i2]; } } if(line){ lines.push(line);} return lines; }
                                 var bottomScale = Math.min((bottomBox.endX-bottomBox.startX)/220,(bottomBox.endY-bottomBox.startY)/80); bottomScale = Math.max(0.5, Math.min(2.5, bottomScale));
-                                var i=0; checkedValues.forEach(function(el){ if (el!='4'){ var t=''; switch(el){ case '1': t=`({{$users->fullname}})`; break; case '2': t=`{{$permission_data->permission_name}}`; break; case '3': t=`{{convertDateToThai(date("Y-m-d"))}}`; break; } drawTextHeaderSignature((15*bottomScale).toFixed(1)+'px Sarabun', (bottomBox.startX+bottomBox.endX)/2, bottomBox.startY + 25*bottomScale + (20*i*bottomScale), t); i++; } });
+                                var i=0; var boxW=(bottomBox.endX-bottomBox.startX)-8; checkedValues.forEach(function(el){ if (el!='4'){ var t=''; switch(el){ case '1': t=`({{$users->fullname}})`; break; case '2': t=`{{$permission_data->permission_name}}`; break; case '3': t=`{{convertDateToThai(date("Y-m-d"))}}`; break; } markCtx.font=(15*bottomScale).toFixed(1)+'px Sarabun'; markCtx.fillStyle='blue'; var lines=[]; t.split('\n').forEach(function(seg){ lines=lines.concat(wrapByWidth(markCtx, seg, boxW)); }); lines.forEach(function(line){ var w=markCtx.measureText(line).width; var cx=(bottomBox.startX+bottomBox.endX)/2 - (w/2); markCtx.fillText(line, cx, bottomBox.startY + 25*bottomScale + (20*i*bottomScale)); i++; }); } });
                             }
                             var isDragging=false, isResizing=false, activeBox=null, dragOffsetX=0, dragOffsetY=0;
                             function isOnResizeHandle(x,y,box){ return x>=box.endX-16 && x<=box.endX && y>=box.endY-16 && y<=box.endY; }
@@ -559,6 +569,24 @@
         var checkedValues = $('input[type="checkbox"]:checked').map(function() {
             return $(this).val();
         }).get();
+        // Derive box sizes for PDF placement
+        var width = 213, height = 40; // defaults for text box
+        var imageBox = null, bottomBox = null;
+        try {
+            if (typeof signatureCoordinates !== 'undefined' && signatureCoordinates && signatureCoordinates.textBox) {
+                var tb = signatureCoordinates.textBox;
+                width = (tb.endX - tb.startX);
+                height = (tb.endY - tb.startY);
+                if (checkedValues.includes('4') && signatureCoordinates.imageBox) {
+                    var ib = signatureCoordinates.imageBox;
+                    imageBox = { startX: ib.startX, startY: ib.startY, width: (ib.endX - ib.startX), height: (ib.endY - ib.startY) };
+                }
+                if (signatureCoordinates.bottomBox) {
+                    var bb = signatureCoordinates.bottomBox;
+                    bottomBox = { startX: bb.startX, startY: bb.startY, width: (bb.endX - bb.startX), height: (bb.endY - bb.startY) };
+                }
+            }
+        } catch (err) { /* keep defaults */ }
         if (id != '' && positionX != '' && positionY != '') {
             Swal.fire({
                 title: "ยืนยันการลงลายเซ็น",
@@ -580,7 +608,11 @@
                             status: 14,
                             text: text,
                             checkedValues: checkedValues,
-                            position_id: position_id
+                            position_id: position_id,
+                            width: width,
+                            height: height,
+                            imageBox: imageBox,
+                            bottomBox: bottomBox
                         },
                         dataType: "json",
                         headers: {
@@ -589,13 +621,9 @@
                         success: function(response) {
                             if (response.status) {
                                 Swal.fire("", "บันทึกลายเซ็นเรียบร้อยแล้ว", "success");
-                                try {
-                                    if (typeof lastOpen !== 'undefined' && lastOpen && lastOpen.url) {
-                                        openPdf(lastOpen.url + (lastOpen.url.indexOf('?')>-1?'&':'?') + 'cb=' + Date.now(), lastOpen.id, lastOpen.status, lastOpen.type, lastOpen.is_number, lastOpen.number, lastOpen.position_id);
-                                    } else {
-                                        location.reload();
-                                    }
-                                } catch (e) { location.reload(); }
+                                // หลังบันทึกไฟล์ ระบบจะเปลี่ยนพาธไฟล์ใหม่ ทำให้ URL เดิม 404
+                                // รีเฟรชหน้าเพื่อดึง URL ล่าสุดแทนการเปิด URL เก่า
+                                setTimeout(function(){ location.reload(); }, 900);
                             } else {
                                 Swal.fire("", "บันทึกไม่สำเร็จ", "error");
                             }
@@ -637,18 +665,10 @@
                     },
                     success: function(response) {
                         if (response.status) {
-                            if (response.status) {
-                                Swal.fire("", "บันทึกข้อมูลเรียบร้อย", "success");
-                                try {
-                                    if (typeof lastOpen !== 'undefined' && lastOpen && lastOpen.url) {
-                                        openPdf(lastOpen.url + (lastOpen.url.indexOf('?')>-1?'&':'?') + 'cb=' + Date.now(), lastOpen.id, lastOpen.status, lastOpen.type, lastOpen.is_number, lastOpen.number, lastOpen.position_id);
-                                    } else {
-                                        location.reload();
-                                    }
-                                } catch (e) { location.reload(); }
-                            } else {
-                                Swal.fire("", "บันทึกข้อมูลไม่สำเร็จ", "error");
-                            }
+                            Swal.fire("", "บันทึกข้อมูลเรียบร้อย", "success");
+                            setTimeout(function(){ location.reload(); }, 900);
+                        } else {
+                            Swal.fire("", "บันทึกข้อมูลไม่สำเร็จ", "error");
                         }
                     }
                 });
@@ -684,18 +704,10 @@
                     },
                     success: function(response) {
                         if (response.status) {
-                            if (response.status) {
-                                Swal.fire("", "แทงเรื่องเรียบร้อยแล้ว", "success");
-                                try {
-                                    if (typeof lastOpen !== 'undefined' && lastOpen && lastOpen.url) {
-                                        openPdf(lastOpen.url + (lastOpen.url.indexOf('?')>-1?'&':'?') + 'cb=' + Date.now(), lastOpen.id, lastOpen.status, lastOpen.type, lastOpen.is_number, lastOpen.number, lastOpen.position_id);
-                                    } else {
-                                        location.reload();
-                                    }
-                                } catch (e) { location.reload(); }
-                            } else {
-                                Swal.fire("", "แทงเรื่องไม่สำเร็จ", "error");
-                            }
+                            Swal.fire("", "แทงเรื่องเรียบร้อยแล้ว", "success");
+                            setTimeout(function(){ location.reload(); }, 900);
+                        } else {
+                            Swal.fire("", "แทงเรื่องไม่สำเร็จ", "error");
                         }
                     }
                 });

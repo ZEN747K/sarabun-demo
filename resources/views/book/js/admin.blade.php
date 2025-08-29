@@ -36,7 +36,6 @@
                 markCtx = markCanvas.getContext('2d'),
                 selectPage = document.getElementById('page-select');
 
-            // markCoordinates is now global
 
             document.getElementById('add-stamp').disabled = true;
 
@@ -94,7 +93,7 @@
                 queueRenderPage(pageNum);
             }
 
-            selectPage.addEventListener('change', function () {
+            $('#page-select').off('change').on('change', function () {
                 let selectedPage = parseInt(this.value);
                 if (selectedPage && selectedPage >= 1 && selectedPage <= pdfDoc.numPages) {
                     pageNum = selectedPage;
@@ -104,6 +103,7 @@
 
             pdfjsLib.getDocument(url).promise.then(function (pdfDoc_) {
                 pdfDoc = pdfDoc_;
+                $('#page-select').empty();
                 for (let i = 1; i <= pdfDoc.numPages; i++) {
                     let option = document.createElement('option');
                     option.value = i;
@@ -116,11 +116,10 @@
             });
 
 
-            document.getElementById('next').addEventListener('click', onNextPage);
-            document.getElementById('prev').addEventListener('click', onPrevPage);
+            $('#next').off('click').on('click', function (e) { e.preventDefault(); onNextPage(); });
+            $('#prev').off('click').on('click', function (e) { e.preventDefault(); onPrevPage(); });
 
 
-            // Enhanced add-stamp with drag and resize functionality
             $('#add-stamp').click(function (e) {
                 e.preventDefault();
                 removeMarkListener();
@@ -131,7 +130,6 @@
                 var markCtx = markCanvas.getContext('2d');
                 var rect = markCanvas.getBoundingClientRect();
 
-                // Default position: center of canvas
                 var defaultWidth = 213;
                 var defaultHeight = 115;
                 var startX = (markCanvas.width - defaultWidth) / 2;
@@ -215,7 +213,6 @@
                     drawTextHeaderClassic((12 * scale).toFixed(1) + 'px Sarabun', markCoordinates.startX + 8 * scale, markCoordinates.startY + 100 * scale, 'เวลา......................................................น.');
                 }
 
-                // Helper: check if mouse is on resize handle (bottom-right corner)
                 function isOnResizeHandle(mouseX, mouseY) {
                     return (
                         mouseX >= markCoordinates.endX - resizeHandleSize && mouseX <= markCoordinates.endX &&
@@ -223,7 +220,6 @@
                     );
                 }
 
-                // Change cursor when hovering resize handle
                 markCanvas.addEventListener('mousemove', function (e) {
                     var rect = markCanvas.getBoundingClientRect();
                     var mouseX = e.clientX - rect.left;
@@ -262,18 +258,15 @@
                     }
                 };
 
-                // Prevent accidental reset of box when clicking outside
                 markCanvas.addEventListener('click', function (e) {
                     var rect = markCanvas.getBoundingClientRect();
                     var mouseX = e.clientX - rect.left;
                     var mouseY = e.clientY - rect.top;
-                    // Only allow click to reset if click is outside the box and not resizing/dragging
                     if (
                         !isDragging && !isResizing &&
                         (mouseX < markCoordinates.startX || mouseX > markCoordinates.endX ||
                             mouseY < markCoordinates.startY || mouseY > markCoordinates.endY)
                     ) {
-                        // Prevent reset: do nothing
                         e.stopPropagation();
                         e.preventDefault();
                     }
@@ -281,7 +274,6 @@
 
                 function onDragMove(e) {
                     if (!isDragging) return;
-                    // Calculate mouse position relative to canvas
                     var rect = markCanvas.getBoundingClientRect();
                     var mouseX = e.clientX - rect.left;
                     var mouseY = e.clientY - rect.top;
@@ -576,9 +568,20 @@
                                     );
                                     bottomScale = Math.max(0.5, Math.min(2.5, bottomScale));
 
+                                    // Wrap long texts to fit inside bottom box width
+                                    function wrapByWidth(ctx, text, maxWidth){
+                                        var words = (text||'').split(' '), lines=[], line='';
+                                        for(var i=0;i<words.length;i++){
+                                            var test = line ? (line+' '+words[i]) : words[i];
+                                            if(ctx.measureText(test).width <= maxWidth){ line = test; }
+                                            else { if(line){ lines.push(line); } line = words[i]; }
+                                        }
+                                        if(line){ lines.push(line); }
+                                        return lines;
+                                    }
                                     var i = 0;
                                     var checkbox_text = '';
-
+                                    var maxW = (bottomBox.endX - bottomBox.startX) - 8;
                                     checkedValues.forEach(function (element) {
                                         if (element != 4) {
                                             switch (element) {
@@ -586,11 +589,19 @@
                                                 case '2': checkbox_text = `{{$permission_data->permission_name}}`; break;
                                                 case '3': checkbox_text = `{{convertDateToThai(date("Y-m-d"))}}`; break;
                                             }
-                                            drawTextHeaderSignature((15 * bottomScale).toFixed(1) + 'px Sarabun',
-                                                (bottomBox.startX + bottomBox.endX) / 2,
-                                                bottomBox.startY + 25 * bottomScale + (20 * i * bottomScale),
-                                                checkbox_text);
-                                            i++;
+                                            var font = (15 * bottomScale).toFixed(1) + 'px Sarabun';
+                                            markCtx.font = font;
+                                            markCtx.fillStyle = 'blue';
+                                            var lines=[];
+                                            checkbox_text.split('\n').forEach(function(seg){
+                                                lines = lines.concat(wrapByWidth(markCtx, seg, maxW));
+                                            });
+                                            lines.forEach(function(line){
+                                                var w = markCtx.measureText(line).width;
+                                                var cx = (bottomBox.startX + bottomBox.endX) / 2 - (w / 2);
+                                                markCtx.fillText(line, cx, bottomBox.startY + 25 * bottomScale + (20 * i * bottomScale));
+                                                i++;
+                                            });
                                         }
                                     });
                                 }
