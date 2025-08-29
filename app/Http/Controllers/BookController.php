@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Auth;
 use Webklex\IMAP\Facades\Client;
 use Webklex\PHPIMAP\ClientManager;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 class BookController extends Controller
 {
 
@@ -155,7 +156,7 @@ class BookController extends Controller
         return redirect()->route('book.index')->with('error', 'ท่านไม่ได้เลือกไฟล์ที่ต้องการนำเข้าระบบ');
     }
 
-    public function show()
+    public function show(\Illuminate\Http\Request $request)
     {
         if (in_array('3', $this->permission)) {
             $data['extends'] = 'book.js.admin'; //แก้แล้ว
@@ -181,21 +182,32 @@ class BookController extends Controller
         $data['permission_data'] = $this->permission_data;
         $data['users'] = $this->users;
         $data['signature'] = $this->signature;
-        Session::forget('keyword');
-        $book = new Book;
+        // Support query-based searching (keeps one-page display intact)
+        $search = trim($request->query('q', $request->input('search', '')));
+        $data['search'] = $search;
+        $query = new Book;
         if ($this->permission_id == '1' || $this->permission_id == '2') {
-            $book = $book->select('books.*')->whereIn('status', $this->permission)->orderBy('created_at', 'desc')->get();
+            $query = $query->select('books.*')->whereIn('status', $this->permission);
         } else {
             if ($this->position_id != null) {
-                $book = $book->where('log_status_books.position_id', $this->position_id);
+                $query = $query->where('log_status_books.position_id', $this->position_id);
             }
-            $book = $book->select('books.*', 'log_status_books.status', 'log_status_books.file', 'log_status_books.position_id')
+            $query = $query->select('books.*', 'log_status_books.status', 'log_status_books.file', 'log_status_books.position_id')
                 ->leftJoin('log_status_books', 'books.id', '=', 'log_status_books.book_id')
-                ->whereIn('log_status_books.status', $this->permission)
-                ->orderBy('created_at', 'desc')
-                
-                ->get();
+                ->whereIn('log_status_books.status', $this->permission);
         }
+        if ($search !== '') {
+            $term = "%$search%";
+            $query = $query->where(function ($q) use ($term) {
+                $q->where('books.inputSubject', 'like', $term)
+                    ->orWhere('books.inputBookto', 'like', $term)
+                    ->orWhere('books.inputBookref', 'like', $term)
+                    ->orWhere('books.inputContent', 'like', $term)
+                    ->orWhere('books.inputNote', 'like', $term)
+                    ->orWhere('books.selectBookFrom', 'like', $term);
+            });
+        }
+        $book = $query->orderBy('created_at', 'desc')->get();
         foreach ($book as &$rec) {
             $rec->showTime = date('H:i', strtotime($rec->inputRecieveDate));
             $rec->url = url("storage/" . $rec->file);
