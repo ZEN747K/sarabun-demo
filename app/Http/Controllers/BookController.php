@@ -217,6 +217,8 @@ class BookController extends Controller
         $book_count = $book_count;
         // Disable pagination on show view; always one page in UI
         $data['totalPages'] = 1;
+        // Inject total documents count for UI badge/button
+        $data['book_count'] = $book_count;
         $data['book'] = $book;
         $item = Position::where('parent_id')->get();
         $data['itemParent'] = [];
