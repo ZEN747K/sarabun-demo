@@ -1,4 +1,13 @@
 <nav class="pc-sidebar pc-trigger pc-sidebar-hide"></nav>
+<style>
+  .dropdown-user-profile .pc-h-dropdown{ max-width: 480px; }
+  .dropdown-user-profile .list-group{ max-height: 360px; overflow-y: auto; }
+  .dropdown-user-profile .list-group-item{ white-space: normal; word-break: break-word; overflow-wrap: anywhere; line-height: 1.35; }
+  .dropdown-user-profile .user-role{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; line-height:1.35; }
+  .dropdown-user-profile .role-text{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; line-height:1.35; }
+  .dropdown-user-profile .dropdown-header .flex-grow-1{ min-width:0; padding-right:48px; }
+  .dropdown-user-profile .dropdown-header .logout-wrap{ flex-shrink:0; margin-left:8px; align-self:flex-start; }
+</style>
 <header class="pc-header">
     <div class="header-wrapper d-flex justify-content-between align-items-center">
         <div class="me-auto pc-mob-drp">
@@ -38,9 +47,11 @@
                                 </div>
                                 <div class="flex-grow-1 ms-3">
                                     <h6 class="mb-1"><?= auth()->user()->fullname ?></h6>
-                                    <span><?= session()->get('permission_name') ?> <?= $permission_data->permission_name ?></span>
+                                    <span class="user-role"><?= session()->get('permission_name') ?> <?= $permission_data->permission_name ?></span>
                                 </div>
-                                <a href="{{url('/login/logout')}}" class=" pc-head-link bg-transparent"><i class="fa fa-sign-out"></i></a>
+                                <div class="logout-wrap">
+                                    <a href="{{url('/login/logout')}}" class="pc-head-link bg-transparent"><i class="fa fa-sign-out"></i></a>
+                                </div>
                             </div>
                             <div class="card">
                                 <ul class="list-group list-group-flush">
@@ -52,7 +63,9 @@
                                         }
                                     ?>
                                         <a href="/users/change_role/<?= $rs->id ?>">
-                                            <li class="list-group-item <?= $active ?>" style="padding:10px;"><?= $rs->permission_name . ' ' . $rs->position_name ?></li>
+                                            <li class="list-group-item <?= $active ?>" style="padding:10px;">
+                                                <span class="role-text"><?= $rs->permission_name . ' ' . $rs->position_name ?></span>
+                                            </li>
                                         </a>
                                     <?php } ?>
                                 </ul>

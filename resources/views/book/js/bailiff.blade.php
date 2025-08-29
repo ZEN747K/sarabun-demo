@@ -11,6 +11,15 @@
     var pageNumTalbe = 1;
 
     var imgData = null;
+    // Keep last opened doc to refresh preview after save
+    var lastOpen = null;
+    // Preload signature image and track load state
+    var signatureImg = new Image();
+    var signatureImgLoaded = false;
+    signatureImg.onload = function(){ signatureImgLoaded = true; };
+    signatureImg.src = signature;
+    // 3-box coordinates
+    var signatureCoordinates = null;
 
     function pdf(url) {
         var pdfDoc = null,
@@ -210,6 +219,17 @@
             }
         }
 
+        // helper to refresh current preview without full page reload
+        function refreshPreviewOrReload(){
+            try {
+                if (lastOpen && lastOpen.url) {
+                    openPdf(lastOpen.url + (lastOpen.url.indexOf('?')>-1?'&':'?') + 'cb=' + Date.now(), lastOpen.id, lastOpen.status, lastOpen.type, lastOpen.is_number, lastOpen.number, lastOpen.position_id);
+                } else {
+                    location.reload();
+                }
+            } catch (e) { location.reload(); }
+        }
+
         $('#modalForm').on('submit', function(e) {
             e.preventDefault();
             var formData = new FormData(this);
@@ -235,74 +255,94 @@
                         removeMarkListener();
                         document.getElementById('manager-save').disabled = false;
 
-                        markEventListener = function(e) {
+                        // Initialize 3-box layout (text → image → bottom) with drag/resize
+                        markEventListener = function(){
                             var markCanvas = document.getElementById('mark-layer');
                             var markCtx = markCanvas.getContext('2d');
-                            var rect = markCanvas.getBoundingClientRect();
-                            var startX = (e.clientX - rect.left);
-                            var startY = (e.clientY - rect.top);
 
-                            var endX = startX + 213;
-                            var endY = startY + 115;
+                            if (!signatureCoordinates) {
+                                var defaultTextWidth = 220, defaultTextHeight = 40, defaultBottomBoxHeight = 80;
+                                var defaultImageWidth = 240, defaultImageHeight = 130, gap = 10;
+                                var startX = (markCanvas.width - defaultTextWidth) / 2;
+                                var totalH = defaultTextHeight + gap + defaultImageHeight + gap + defaultBottomBoxHeight + 20;
+                                var startY = (markCanvas.height - totalH) / 2;
+                                signatureCoordinates = {
+                                    textBox: { startX: startX, startY: startY, endX: startX + defaultTextWidth, endY: startY + defaultTextHeight, type: 'text' },
+                                    imageBox: { startX: startX - 13, startY: startY + defaultTextHeight + gap, endX: (startX - 13) + defaultImageWidth, endY: startY + defaultTextHeight + gap + defaultImageHeight, type: 'image' },
+                                    bottomBox:{ startX: startX, startY: startY + defaultTextHeight + gap + defaultImageHeight + gap, endX: startX + defaultTextWidth, endY: startY + defaultTextHeight + gap + defaultImageHeight + gap + defaultBottomBoxHeight, type: 'bottom' }
+                                };
+                                $('#positionX').val(startX); $('#positionY').val(startY); $('#positionPages').val(1);
+                            }
 
-                            markCoordinates = {
-                                startX,
-                                startY,
-                                endX,
-                                endY
-                            };
-                            $('#positionX').val(startX);
-                            $('#positionY').val(startY);
-                            $('#positionPages').val(1);
-
-                            var text = $('#modal-text').val();
-                            var lineBreakCount = countLineBreaks(text);
-                            var checkedValues = $('input[type="checkbox"]:checked').map(function() {
-                                return $(this).val();
-                            }).get();
-                            drawMarkSignature(startX - 40, startY + (20 * lineBreakCount), endX, endY, checkedValues);
-                            drawTextHeaderSignature('15px Sarabun', startX, startY, text);
-
-                            var i = 0;
-                            var checkbox_text = '';
-                            var checkbox_x = 0;
-                            var plus_y = 20;
-                            checkedValues.forEach(element => {
-                                if (element == 4) {
-                                    plus_y = 160;
-                                }
-                            });
-
-                            checkedValues.forEach(element => {
-                                switch (element) {
-                                    case '1':
-                                        checkbox_text = `({{$users->fullname}})`;
-                                        break;
-                                    case '2':
-                                        checkbox_text = `{{$permission_data->permission_name}}`;
-                                        break;
-                                    case '3':
-                                        checkbox_text = `{{convertDateToThai(date("Y-m-d"))}}`;
-                                        break;
-                                }
-                                var lines = checkbox_text.split('\n');
-                                if (element != 4) {
-                                    drawTextHeaderSignature('15px Sarabun', startX, (startY + plus_y + (20 * lineBreakCount)) + (20 * i), checkbox_text);
-                                }
-                                if (lines.length > 1) {
-                                    var stop = 0;
-                                    lines.forEach(element => {
-                                        if (stop != 0) {
-                                            i++;
+                            var resizeHandleSize = 16;
+                            function redraw(){
+                                markCtx.clearRect(0,0,markCanvas.width, markCanvas.height);
+                                var text = $('#modal-text').val();
+                                var checkedValues = $('input[type="checkbox"]:checked').map(function(){return $(this).val();}).get();
+                                // text box
+                                var tb = signatureCoordinates.textBox;
+                                markCtx.save(); markCtx.strokeStyle='blue'; markCtx.lineWidth=0.5; markCtx.strokeRect(tb.startX, tb.startY, tb.endX-tb.startX, tb.endY-tb.startY);
+                                markCtx.fillStyle='#fff'; markCtx.strokeStyle='#007bff'; markCtx.lineWidth=2; markCtx.fillRect(tb.endX-resizeHandleSize, tb.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.strokeRect(tb.endX-resizeHandleSize, tb.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.restore();
+                                var s = Math.min((tb.endX-tb.startX)/220,(tb.endY-tb.startY)/40); s=Math.max(0.5, Math.min(2.5,s));
+                                drawTextHeaderSignature((15*s).toFixed(1)+'px Sarabun', (tb.startX+tb.endX)/2, tb.startY+25*s, text);
+                                // image box
+                                var has = checkedValues.includes('4');
+                                if (has){ var ib = signatureCoordinates.imageBox; markCtx.save(); markCtx.strokeStyle='green'; markCtx.lineWidth=0.5; markCtx.strokeRect(ib.startX, ib.startY, ib.endX-ib.startX, ib.endY-ib.startY); markCtx.fillStyle='#fff'; markCtx.strokeStyle='#28a745'; markCtx.lineWidth=2; markCtx.fillRect(ib.endX-resizeHandleSize, ib.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.strokeRect(ib.endX-resizeHandleSize, ib.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.restore(); var iw=ib.endX-ib.startX, ih=ib.endY-ib.startY; if (signatureImgLoaded){ markCtx.drawImage(signatureImg, ib.startX, ib.startY, iw, ih); imgData={x:ib.startX,y:ib.startY,width:iw,height:ih}; } }
+                                // bottom box
+                                var bb = signatureCoordinates.bottomBox;
+                                // Light background to prevent underlying PDF text showing through
+                                markCtx.save();
+                                markCtx.globalAlpha = 0.9;
+                                markCtx.fillStyle = '#ffffff';
+                                markCtx.fillRect(bb.startX + 1, bb.startY + 1, (bb.endX - bb.startX) - 2, (bb.endY - bb.startY) - 2);
+                                markCtx.restore();
+                                // Border + resize handle (purple theme)
+                                markCtx.save(); markCtx.strokeStyle='purple'; markCtx.lineWidth=0.5; markCtx.strokeRect(bb.startX, bb.startY, bb.endX-bb.startX, bb.endY-bb.startY);
+                                markCtx.fillStyle='#fff'; markCtx.strokeStyle='#6f42c1'; markCtx.lineWidth=2; markCtx.fillRect(bb.endX-resizeHandleSize, bb.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.strokeRect(bb.endX-resizeHandleSize, bb.endY-resizeHandleSize, resizeHandleSize, resizeHandleSize); markCtx.restore();
+                                // Draw bottom texts with multiline + dynamic scale to prevent overlap
+                                var bbW = (bb.endX - bb.startX);
+                                var bbH = (bb.endY - bb.startY);
+                                var items = [];
+                                checkedValues.forEach(function(el){
+                                    if (el !== '4'){
+                                        var t='';
+                                        switch(el){
+                                            case '1': t = `({{$users->fullname}})`; break;
+                                            case '2': t = `{{$permission_data->permission_name}}`; break;
+                                            case '3': t = `{{convertDateToThai(date("Y-m-d"))}}`; break;
                                         }
-                                        stop++;
+                                        var ls = (t||'').split('\n');
+                                        items.push(ls);
+                                    }
+                                });
+                                var totalLines = items.reduce(function(acc,ls){ return acc + ls.length; }, 0);
+                                // Scale so all lines fit in box height
+                                var bs = Math.min(bbW/220, bbH / (25 + 20 * Math.max(0,totalLines-1)));
+                                bs = Math.max(0.5, Math.min(2.5, bs));
+                                var lineIndex = 0;
+                                items.forEach(function(lines){
+                                    lines.forEach(function(line){
+                                        drawTextHeaderSignature((15*bs).toFixed(1)+'px Sarabun', (bb.startX+bb.endX)/2, bb.startY + 25*bs + (20*lineIndex*bs), line);
+                                        lineIndex++;
                                     });
-                                }
-                                i++;
-                            });
+                                });
+                            }
+                            var isDragging=false, isResizing=false, activeBox=null, dragOffsetX=0, dragOffsetY=0;
+                            function onResizeHandle(x,y,b){ return x>=b.endX-16 && x<=b.endX && y>=b.endY-16 && y<=b.endY; }
+                            function inBox(x,y,b){ return x>=b.startX && x<=b.endX && y>=b.startY && y<=b.endY; }
+                            function pickBox(x,y){ var cv=$('input[type="checkbox"]:checked').map(function(){return $(this).val();}).get(); var has=cv.includes('4'); if (inBox(x,y, signatureCoordinates.bottomBox)) return signatureCoordinates.bottomBox; if (has && inBox(x,y, signatureCoordinates.imageBox)) return signatureCoordinates.imageBox; if (inBox(x,y, signatureCoordinates.textBox)) return signatureCoordinates.textBox; return null; }
+                            markCanvas.addEventListener('mousemove', function(e){ var r=markCanvas.getBoundingClientRect(); var x=e.clientX-r.left; var y=e.clientY-r.top; var cv=$('input[type="checkbox"]:checked').map(function(){return $(this).val();}).get(); var has=cv.includes('4'); if (onResizeHandle(x,y, signatureCoordinates.textBox) || onResizeHandle(x,y, signatureCoordinates.bottomBox) || (has && onResizeHandle(x,y, signatureCoordinates.imageBox))) markCanvas.style.cursor='se-resize'; else if (pickBox(x,y)) markCanvas.style.cursor='move'; else markCanvas.style.cursor='default'; });
+                            markCanvas.onmousedown=function(e){ var r=markCanvas.getBoundingClientRect(); var x=e.clientX-r.left; var y=e.clientY-r.top; var cv=$('input[type="checkbox"]:checked').map(function(){return $(this).val();}).get(); var has=cv.includes('4'); if (onResizeHandle(x,y, signatureCoordinates.textBox)) { isResizing=true; activeBox=signatureCoordinates.textBox; e.preventDefault(); window.addEventListener('mousemove', onResizeMove); window.addEventListener('mouseup', onResizeEnd);} else if (onResizeHandle(x,y, signatureCoordinates.bottomBox)) { isResizing=true; activeBox=signatureCoordinates.bottomBox; e.preventDefault(); window.addEventListener('mousemove', onResizeMove); window.addEventListener('mouseup', onResizeEnd);} else if (has && onResizeHandle(x,y, signatureCoordinates.imageBox)) { isResizing=true; activeBox=signatureCoordinates.imageBox; e.preventDefault(); window.addEventListener('mousemove', onResizeMove); window.addEventListener('mouseup', onResizeEnd);} else { activeBox=pickBox(x,y); if (activeBox){ isDragging=true; dragOffsetX=x-activeBox.startX; dragOffsetY=y-activeBox.startY; e.preventDefault(); window.addEventListener('mousemove', onDragMove); window.addEventListener('mouseup', onDragEnd);} }
+                            };
+                            function onDragMove(e){ if(!isDragging||!activeBox) return; var r=markCanvas.getBoundingClientRect(); var x=e.clientX-r.left; var y=e.clientY-r.top; var w=activeBox.endX-activeBox.startX; var h=activeBox.endY-activeBox.startY; var nsx=Math.max(0, Math.min(markCanvas.width-w, x-dragOffsetX)); var nsy=Math.max(0, Math.min(markCanvas.height-h, y-dragOffsetY)); activeBox.startX=nsx; activeBox.startY=nsy; activeBox.endX=nsx+w; activeBox.endY=nsy+h; if (activeBox.type==='text'){ $('#positionX').val(nsx); $('#positionY').val(nsy);} redraw(); }
+                            function onDragEnd(){ isDragging=false; activeBox=null; window.removeEventListener('mousemove', onDragMove); window.removeEventListener('mouseup', onDragEnd); }
+                            function onResizeMove(e){ if(!isResizing||!activeBox) return; var r=markCanvas.getBoundingClientRect(); var x=e.clientX-r.left; var y=e.clientY-r.top; var minW=40, minH=30; activeBox.endX=Math.min(markCanvas.width, Math.max(activeBox.startX+minW, x)); activeBox.endY=Math.min(markCanvas.height, Math.max(activeBox.startY+minH, y)); redraw(); }
+                            function onResizeEnd(){ isResizing=false; activeBox=null; window.removeEventListener('mousemove', onResizeMove); window.removeEventListener('mouseup', onResizeEnd); }
+                            redraw();
                         };
 
                         var markCanvas = document.getElementById('mark-layer');
+                        try { markEventListener(); } catch (e) {}
                         markCanvas.addEventListener('click', markEventListener);
 
                         markEventListenerInsert = function(e) {
@@ -392,7 +432,10 @@
         document.getElementById('save-stamp').disabled = true;
         document.getElementById('send-save').disabled = true;
         $('#div-canvas').html('<div style="position: relative;"><canvas id="pdf-render"></canvas><canvas id="mark-layer" style="position: absolute; left: 0; top: 0;"></canvas></div>');
-        pdf(url);
+        // cache-busting to always fetch latest PDF
+        pdf(url + (url.indexOf('?')>-1?'&':'?') + 'cb=' + Date.now());
+        // remember last open args for refresh
+        lastOpen = { url:url, id:id, status:status, type:type, is_number:is_number, number:number, position_id:position_id };
         $('#id').val(id);
         $('#position_id').val(position_id);
         $('#positionX').val('');
@@ -543,8 +586,20 @@
         e.preventDefault();
         var id = $('#id').val();
         var position_id = $('#position_id').val();
-        var positionX = $('#positionX').val();
-        var positionY = $('#positionY').val();
+        // Prefer 3-box coordinates
+        var textBox = signatureCoordinates ? signatureCoordinates.textBox : null;
+        var imageBox = signatureCoordinates ? signatureCoordinates.imageBox : null;
+        var bottomBox = signatureCoordinates ? signatureCoordinates.bottomBox : null;
+        var positionX = null, positionY = null, width = null, height = null;
+        if (textBox) {
+            positionX = textBox.startX;
+            positionY = textBox.startY;
+            width = textBox.endX - textBox.startX;
+            height = textBox.endY - textBox.startY;
+        } else {
+            positionX = $('#positionX').val();
+            positionY = $('#positionY').val();
+        }
         var positionPages = $('#positionPages').val();
         var pages = $('#page-select').find(":selected").val();
         var text = $('#modal-text').val();
@@ -563,17 +618,23 @@
                     $.ajax({
                         type: "post",
                         url: "/book/manager_stamp",
-                        data: {
-                            id: id,
-                            positionX: positionX,
-                            positionY: positionY,
-                            positionPages: positionPages,
-                            pages: pages,
-                            status: 9,
-                            text: text,
-                            checkedValues: checkedValues,
-                            position_id: position_id
-                        },
+                        data: (function(){
+                            var payload = {
+                                id: id,
+                                positionX: positionX,
+                                positionY: positionY,
+                                positionPages: positionPages,
+                                pages: pages,
+                                status: 9,
+                                text: text,
+                                checkedValues: checkedValues,
+                                position_id: position_id
+                            };
+                            if (width != null && height != null) { payload.width = width; payload.height = height; }
+                            if (bottomBox) { payload.bottomBox = { startX: bottomBox.startX, startY: bottomBox.startY, width: bottomBox.endX - bottomBox.startX, height: bottomBox.endY - bottomBox.startY }; }
+                            if (imageBox && checkedValues.includes('4')) { payload.imageBox = { startX: imageBox.startX, startY: imageBox.startY, width: imageBox.endX - imageBox.startX, height: imageBox.endY - imageBox.startY }; }
+                            return payload;
+                        })(),
                         dataType: "json",
                         headers: {
                             'X-CSRF-TOKEN': '{{ csrf_token() }}'

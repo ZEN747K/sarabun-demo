@@ -424,17 +424,20 @@
 
                                 // Only create initial coordinates on first click
                                 if (!signatureCoordinates) {
-                                    // Default position and sizes
-                                    var defaultTextWidth = 213;
+                                    // Default sizes
+                                    var defaultTextWidth = 220;
                                     var defaultTextHeight = 40;
                                     var defaultBottomBoxHeight = 80;
                                     var defaultImageWidth = 240;
                                     var defaultImageHeight = 130;
+                                    var gap = 10;
 
+                                    // Centered start positions for stacked layout: Text → Image → Bottom
                                     var startX = (markCanvas.width - defaultTextWidth) / 2;
-                                    var startY = (markCanvas.height - (defaultTextHeight + defaultBottomBoxHeight + defaultImageHeight + 40)) / 2;
+                                    var totalH = defaultTextHeight + gap + defaultImageHeight + gap + defaultBottomBoxHeight + 20;
+                                    var startY = (markCanvas.height - totalH) / 2;
 
-                                    // Create separate boxes
+                                    // Create separate boxes in the order: textBox → imageBox → bottomBox
                                     var textBox = {
                                         startX: startX,
                                         startY: startY,
@@ -443,28 +446,24 @@
                                         type: 'text'
                                     };
 
-                                    var bottomBox = {
-                                        startX: startX,
-                                        startY: startY + defaultTextHeight + 10,
-                                        endX: startX + defaultTextWidth,
-                                        endY: startY + defaultTextHeight + 10 + defaultBottomBoxHeight,
-                                        type: 'bottom'
-                                    };
-
                                     var imageBox = {
                                         startX: startX - 13,
-                                        startY: startY + defaultTextHeight + defaultBottomBoxHeight + 20,
-                                        endX: startX + defaultImageWidth - 13,
-                                        endY: startY + defaultTextHeight + defaultBottomBoxHeight + 20 + defaultImageHeight,
+                                        startY: startY + defaultTextHeight + gap, // below text
+                                        endX: (startX - 13) + defaultImageWidth,
+                                        endY: startY + defaultTextHeight + gap + defaultImageHeight,
                                         type: 'image'
                                     };
 
-                                    signatureCoordinates = {
-                                        textBox: textBox,
-                                        bottomBox: bottomBox,
-                                        imageBox: imageBox
+                                    var bottomBox = {
+                                        startX: startX,
+                                        startY: startY + defaultTextHeight + gap + defaultImageHeight + gap, // below image
+                                        endX: startX + defaultTextWidth,
+                                        endY: startY + defaultTextHeight + gap + defaultImageHeight + gap + defaultBottomBoxHeight,
+                                        type: 'bottom'
                                     };
 
+                                    signatureCoordinates = { textBox: textBox, bottomBox: bottomBox, imageBox: imageBox };
+                                    
                                     $('#positionX').val(startX);
                                     $('#positionY').val(startY);
                                     $('#positionPages').val(1);
@@ -518,56 +517,7 @@
                                     drawTextHeaderSignature((15 * textScale).toFixed(1) + 'px Sarabun',
                                         (textBox.startX + textBox.endX) / 2, textBox.startY + 25 * textScale, text);
 
-                                    // Draw bottom box (for name, position, date)
-                                    var bottomBox = signatureCoordinates.bottomBox;
-                                    markCtx.save();
-                                    markCtx.strokeStyle = 'purple';
-                                    markCtx.lineWidth = 0.5;
-                                    markCtx.strokeRect(bottomBox.startX, bottomBox.startY,
-                                        bottomBox.endX - bottomBox.startX, bottomBox.endY - bottomBox.startY);
-
-                                    // Draw resize handle for bottom box
-                                    markCtx.fillStyle = '#fff';
-                                    markCtx.strokeStyle = '#6f42c1';
-                                    markCtx.lineWidth = 2;
-                                    markCtx.fillRect(bottomBox.endX - resizeHandleSize, bottomBox.endY - resizeHandleSize,
-                                        resizeHandleSize, resizeHandleSize);
-                                    markCtx.strokeRect(bottomBox.endX - resizeHandleSize, bottomBox.endY - resizeHandleSize,
-                                        resizeHandleSize, resizeHandleSize);
-                                    markCtx.restore();
-
-                                    // Draw checkbox content in bottom box
-                                    var bottomScale = Math.min(
-                                        (bottomBox.endX - bottomBox.startX) / 213,
-                                        (bottomBox.endY - bottomBox.startY) / 80
-                                    );
-                                    bottomScale = Math.max(0.5, Math.min(2.5, bottomScale));
-
-                                    var i = 0;
-                                    var checkbox_text = '';
-
-                                    checkedValues.forEach(element => {
-                                        if (element != 4) {
-                                            switch (element) {
-                                                case '1':
-                                                    checkbox_text = `({{$users->fullname}})`;
-                                                    break;
-                                                case '2':
-                                                    checkbox_text = `{{$permission_data->permission_name}}`;
-                                                    break;
-                                                case '3':
-                                                    checkbox_text = `{{convertDateToThai(date("Y-m-d"))}}`;
-                                                    break;
-                                            }
-                                            drawTextHeaderSignature((15 * bottomScale).toFixed(1) + 'px Sarabun',
-                                                (bottomBox.startX + bottomBox.endX) / 2,
-                                                bottomBox.startY + 25 * bottomScale + (20 * i * bottomScale),
-                                                checkbox_text);
-                                            i++;
-                                        }
-                                    });
-
-                                    // ONLY draw image box if checkbox 4 is selected - FIX FOR GREEN BOX
+                                    // Draw image box second (if checkbox 4 is selected)
                                     var hasImage = checkedValues.includes('4');
                                     if (hasImage) {
                                         var imageBox = signatureCoordinates.imageBox;
@@ -600,6 +550,49 @@
                                             };
                                         }
                                     }
+
+                                    // Finally, draw bottom box (for name, position, date)
+                                    var bottomBox = signatureCoordinates.bottomBox;
+                                    markCtx.save();
+                                    markCtx.strokeStyle = 'purple';
+                                    markCtx.lineWidth = 0.5;
+                                    markCtx.strokeRect(bottomBox.startX, bottomBox.startY,
+                                        bottomBox.endX - bottomBox.startX, bottomBox.endY - bottomBox.startY);
+
+                                    // Draw resize handle for bottom box
+                                    markCtx.fillStyle = '#fff';
+                                    markCtx.strokeStyle = '#6f42c1';
+                                    markCtx.lineWidth = 2;
+                                    markCtx.fillRect(bottomBox.endX - resizeHandleSize, bottomBox.endY - resizeHandleSize,
+                                        resizeHandleSize, resizeHandleSize);
+                                    markCtx.strokeRect(bottomBox.endX - resizeHandleSize, bottomBox.endY - resizeHandleSize,
+                                        resizeHandleSize, resizeHandleSize);
+                                    markCtx.restore();
+
+                                    // Draw checkbox content in bottom box
+                                    var bottomScale = Math.min(
+                                        (bottomBox.endX - bottomBox.startX) / 213,
+                                        (bottomBox.endY - bottomBox.startY) / 80
+                                    );
+                                    bottomScale = Math.max(0.5, Math.min(2.5, bottomScale));
+
+                                    var i = 0;
+                                    var checkbox_text = '';
+
+                                    checkedValues.forEach(function (element) {
+                                        if (element != 4) {
+                                            switch (element) {
+                                                case '1': checkbox_text = `({{$users->fullname}})`; break;
+                                                case '2': checkbox_text = `{{$permission_data->permission_name}}`; break;
+                                                case '3': checkbox_text = `{{convertDateToThai(date("Y-m-d"))}}`; break;
+                                            }
+                                            drawTextHeaderSignature((15 * bottomScale).toFixed(1) + 'px Sarabun',
+                                                (bottomBox.startX + bottomBox.endX) / 2,
+                                                bottomBox.startY + 25 * bottomScale + (20 * i * bottomScale),
+                                                checkbox_text);
+                                            i++;
+                                        }
+                                    });
                                 }
 
                                 // Helper functions
@@ -764,6 +757,9 @@
                             };
 
                             var markCanvas = document.getElementById('mark-layer');
+                            // Draw centered 3-box layout immediately after confirming
+                            try { markEventListener(); } catch (err) { /* no-op */ }
+                            // Also allow re-init on canvas click (optional)
                             markCanvas.addEventListener('click', markEventListener);
 
                             // Enhanced signature function for insert page with drag and resize
